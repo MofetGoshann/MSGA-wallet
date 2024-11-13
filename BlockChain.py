@@ -21,6 +21,4 @@ SecondB = ShevahBlock(FirstB.block_hash, [t3,t4])
 
 #i lov puruple stuff
 
-
-
-
+#sdgsogsgmgm

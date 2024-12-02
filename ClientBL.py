@@ -1,8 +1,8 @@
-#sdfsdfsdff
+
 import threading 
 from protocol import *
 
-class CClientBL:
+class ClientBL:
 
     def __init__(self, ip: str, port: int, recv_callback):
         # Here will be not only the init process of data
@@ -74,35 +74,24 @@ class CClientBL:
             self._last_error = f"An error occurred in client bl [disconnect function]\nError : {e}"
 
             return False
-    
-    def send_data(self, cmd: str, args_string: str) -> bool:
-        """
-        Send data to the server
 
-        :param cmd: command to send
-        :param args_string: arguments as a string to send
+    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> str:
+
+        transaction = send_address + ">" + amount + ">" + token + ">" + rec_address
+        return transaction
+
+    def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> bool:
+        """
+        Send transaction to the hub and after that to the miner pool
+        :param args_string: arguments of the transaction string to send
         :return: True / False on success
         """
-
         try:
-            type_protocol: int = check_cmd(cmd)
-
-            if type_protocol == 2:
-                # Protocol 2.7
-
-                message: str = self.__protocol_27.create_request(cmd, args_string) #convert the string  to cmd>{list of args}
-                encoded_msg: bytes = message.encode(FORMAT) #encoding
-
-                self._socket_obj.send(encoded_msg)
-
-                write_to_log(f" 路 Client 路 send to server : {message}")
-
-                return True
 
             # If our command is not related to protocol 2.7 at all
 
             # we will use protocol 2.6
-            message: str = self.__protocol_26.create_request(cmd)
+            message: str = self.assemble_transaction(send_address, token, amount, rec_address)
             encoded_msg: bytes = message.encode(FORMAT)
 
             self._socket_obj.send(encoded_msg)
@@ -118,6 +107,8 @@ class CClientBL:
             self._last_error = f"An error occurred in client bl [send_data function]\nError : {e}"
 
             return False
+
+
 
 
 

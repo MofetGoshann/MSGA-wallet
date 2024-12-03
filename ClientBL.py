@@ -75,9 +75,14 @@ class ClientBL:
 
             return False
 
-    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> str:
+    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: str) -> str:
 
-        transaction = send_address + ">" + amount + ">" + token + ">" + rec_address
+        transaction: str = send_address + ">" + amount + ">" + token + ">" + rec_address
+        enc_transaction = hashlib.sha256(transaction)
+        key_enc_transaction = None
+
+
+
         return transaction
 
     def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> bool:

@@ -4,12 +4,15 @@ import logging
 import socket
 
 
-LOG_FILE = "LogFile.log"
+DISCONNECT_MSG = "EXIT"
+KICK_MSG = "You have been kicked."
+LOG_FILE: str = "LogFile.log"
 FORMAT: str = "utf-8"
+LOG_MSG = "Successfully logged in."
+REG_MSG = "Successfully registered, enjoy!"
 PORT: int = 12345
 BUFFER_SIZE: int = 1024
 HEADER_SIZE = 4
-DISCONNECT_MSG = "EXIT"
 
 
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO,
@@ -67,7 +70,7 @@ class ShevahBlock:
     def __init__(self, previous_block_hash, transaction_list):
         self.previous_block_hash = previous_block_hash
         self.transaction_list = transaction_list
-        self.block_data = "-" + previous_block_hash ++ "-".join(transaction_list)
+        self.block_data = "-" + previous_block_hash + "-".join(transaction_list)
         self.block_hash = hashlib.sha256(self.block_data.encode()).hexdigest()
     def __str__(self) -> str:
         return None
@@ -81,4 +84,3 @@ t4 = "Ariel sent 1 SNC to Natali"
 FirstB =  ShevahBlock("1488", [t1,t2])
 
 SecondB = ShevahBlock(FirstB.block_hash, [t3,t4])
-#asdfasdasdasdasdsdad

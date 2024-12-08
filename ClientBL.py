@@ -1,8 +1,13 @@
-#sdfsdfsdff
+
 import threading 
 from protocol import *
+from hashlib import sha256
+import hashlib
+import ecdsa
+from ecdsa import SigningKey, NIST256p
+from ecdsa.util import sigencode_string
 
-class CClientBL:
+class ClientBL:
 
     def __init__(self, ip: str, port: int, recv_callback):
         # Here will be not only the init process of data
@@ -74,18 +79,29 @@ class CClientBL:
             self._last_error = f"An error occurred in client bl [disconnect function]\nError : {e}"
 
             return False
-    
-    def send_data(self, args_string: str) -> bool:
-        """
-        Send data to the server
 
-        :param cmd: command to send
-        :param args_string: arguments as a string to send
+    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> str:
+
+        transaction: str = send_address + ">" + amount + ">" + token + ">" + rec_address
+        enc_transaction = hashlib.sha256(transaction)
+        signature = private_key.sign_deterministic(enc_transaction, hashfunc=sha256,sigencode=sigencode_string)
+        public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
+
+
+        return enc_transaction + ">" + signature + ">" + public_key.to_string()
+
+    def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> bool:
+        """
+        Send transaction to the hub and after that to the miner pool
+        :param args_string: arguments of the transaction string to send
         :return: True / False on success
         """
-
         try:
-            message: str = args_string
+
+            # If our command is not related to protocol 2.7 at all
+
+            # we will use protocol 2.6
+            message: str = self.assemble_transaction(send_address, token, amount, rec_address)
             encoded_msg: bytes = message.encode(FORMAT)
 
             self._socket_obj.send(encoded_msg)
@@ -101,6 +117,8 @@ class CClientBL:
             self._last_error = f"An error occurred in client bl [send_data function]\nError : {e}"
 
             return False
+
+
 
 
 

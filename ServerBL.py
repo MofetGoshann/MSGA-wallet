@@ -1,37 +1,40 @@
-from select import select
-import threading
+
+import threading 
 from protocol import *
+from hashlib import sha256
+import hashlib
+import ecdsa
+from ecdsa import SigningKey, NIST256p
+from ecdsa.util import sigencode_string
+ 
+class ClientBL:
 
-class CServerBL:
-    def __init__(self, ip: str, port: int, receive_callback):
+    def __init__(self, ip: str, port: int, recv_callback):
+        # Here will be not only the init process of data
+        # but also the connect event
 
-        self.__ip: str = ip
+        self._socket_obj: socket = None
+        
 
-
-        self._session_list = {}
-
-        self._server_socket: socket = None
-        self.__server_running_flag: bool = False
-
-        self._clint_list: list = {}
-
-        self._receive_callback = receive_callback
-        self._mutex = threading.Lock()
-
-        with open('LogFile.log', 'w'):
-            pass
-
+        self.__recieved_message = None
         self._last_error = ""
-        self._success = self.__start_server(ip, port)
+        self._balance = {}
+        self._recvfunc = recv_callback
+        self._success = self.__connect(ip, port)
 
-    def __start_server(self, ip: str, port: int) -> bool:
-
-        write_to_log("  Server    · starting")
+    def __connect(self, ip: str, port: int) -> bool:
+        #connect client on start init returns success of connection
 
         try:
             # Create and connect socket
-            self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._server_socket.bind((ip, port))
+            self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._socket_obj.connect((ip, port))
+
+            self._socket_obj.send()
+            #always recieve data from server to know if kicked
+            self.__always_recieve()
+            # Log the data
+            write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
 
             # Return on success
             return True
@@ -39,154 +42,141 @@ class CServerBL:
         except Exception as e:
 
             # Handle failure
-            self._server_socket = None
-            write_to_log(f"  Server    · failed to start up sever : {e}")
+            self._socket_obj = None
+            write_to_log(f" 路 Client 路 failed to connect client; ex:{e}")
 
-            self._last_error = f"An error occurred in server bl [start_server function]\nError : {e}"
+            self._last_error = f"An error occurred in client bl [connect function]\nError : {e}"
+
+            return False
+    
+    def disconnect(self) -> bool:
+        """
+        Disconnect the client from server
+
+        :return: True / False on success
+        """
+
+        try:
+            # Start the disconnect process
+            write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} closing")
+
+            # Alert the server we're closing this client
+            self.send_data(DISCONNECT_MSG, "")
+
+            self._recvfunc("Disconnected.")
+            # Close client socket
+            self._socket_obj.close()
+
+            write_to_log(f" 路 Client 路 the client closed")
+
+            self._socket_obj = None
+
+            # Return on success
+            return True
+
+        except Exception as e:
+
+            # Handle failure
+            write_to_log(f" 路 Client 路 failed to disconnect : {e}")
+            self._last_error = f"An error occurred in client bl [disconnect function]\nError : {e}"
 
             return False
 
+    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> str:
 
-
-    def server_process(self) -> bool:
-
+        transaction: str = send_address + ">" + amount + ">" + token + ">" + rec_address
+        enc_transaction = hashlib.sha256(transaction)
         try:
-            self.__server_running_flag = True
+            signature = private_key.sign_deterministic(enc_transaction, hashfunc=sha256,sigencode=sigencode_string)
+            public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
 
-            self._server_socket.listen()  # listen for clients
 
-            write_to_log(f"  Server    · listening on {self.__ip}")
+            return enc_transaction.hexdigest() + ">" + signature + ">" + public_key.to_string()
 
-            while self.__server_running_flag:
+        except Exception as e:
+            write_to_log(f" 路 Client 路 failed to assemble transaction {e}")
+            self._last_error = f"An error occurred in client bl [assemble_transaction function]\nError : {e}"
 
-                # Use time_out function for .accept() to close thread on no need
-                client_socket, client_addr = self.__time_accept(0.3)
+            return False
+    
+    def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bool:
+        """
+        Send transaction to the hub and after that to the miner pool
+        :param args_string: arguments of the transaction string to send
+        :return: True / False on success
+        """
+        try:
 
-                # Check if we didn't time out
-                if client_socket:
+            # If our command is not related to protocol 2.7 at all
 
-                    self.__update_client_list(client_addr, client_socket)
-                    # Start a new thread for a new client
-                    
+            # we will use protocol 2.6
+            message: str = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
+            encoded_msg: bytes = message.encode(FORMAT)
 
-                    new_client_thread = threading.Thread(target=self.__handle_client, args=(client_socket, client_addr))
-                    new_client_thread.start()
+            self._socket_obj.send(encoded_msg)
 
-                    write_to_log(f"  Server    · active connection {threading.active_count() - 2}")
-
-            # Close server socket on server end
-            self._server_socket.close()
-            write_to_log("  Server    · closed")
-
-            # Everything went without any problems
-            self._server_socket = None
+            write_to_log(f" 路 Client 路 send to server : {message}")
 
             return True
 
         except Exception as e:
 
             # Handle failure
-            write_to_log(f"  Server    · failed to set up server {e}")
+            write_to_log(f" 路 Client 路 failed to send to server {e}")
+            self._last_error = f"An error occurred in client bl [send_data function]\nError : {e}"
 
-            self._last_error = f"An error occurred in server bl [server_process function]\nError : {e}"
-
-            return False         
+            return False
 
 
-    def __time_accept(self, time: int):
+
+
+
+
+
+
+    
+        
     
 
-        try:
-            self._server_socket.settimeout(time)
-
-            ready, _, _ = select([self._server_socket], [], [], time)
-
-            if ready:
-                return self._server_socket.accept()
-
-            return None, None
-        except Exception as e:
-            return None, None
 
 
-    def __handle_client(self, client_socket, client_addr):
-
-        # This code run in separate for every client
-        write_to_log(f"  Server    · new connection : {client_addr} connected")
-        
 
 
-        if self._clientstablecallback is not None: # insert client to gui table
-            self._clientstablecallback(client_addr[0], client_addr[1], True, False)
-        
+
+    def __always_listen(self):
+        """always recieve messages from server primarily to get kick message"""
+
         connected = True
-
         while connected:
+            self._socket_obj.settimeout(3) # set a timeout for recievedata
 
-            # Get message from  client
-            (success,  msg) = receive_buffer(client_socket)
+            self.__recieved_message = self.receive_data() # update 
 
-            if success:
-                # if we managed to get the message :
-                write_to_log(f"  Server    · received from client : {client_addr} - {msg}")
+            if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
-                self._mutex.acquire()
-                try:
-                    if self._receive_callback is not None:
-                        if not msg.startswith("LOGIN"):
-                            self._receive_callback(f"{client_addr} - {msg}")
-                        else:
-                            self._receive_callback(f"{client_addr} - LOGIN > Username, Password")
+                key = self.__recieved_message[REG_MSG.__len__():]
 
-                except Exception as e:
-                    write_to_log(f"  Server    · some error occurred : {e}")
-                finally:
-                    self._mutex.release()
+                if key:
+                    with open("ClientBLregkeys.txt", 'a') as file: # save the key in a textfile
+                        file.write(key + "\n")
 
-                # Parse from buffer
-                cmd, args = convert_data(msg)
-
-                # If the client wants to disconnect
-                if cmd == DISCONNECT_MSG:
-                    connected = False
+                    self._recvfunc(REG_MSG) #insert the message into the gui
                 else:
-                    write_to_log(f"  Server    · client requested : {cmd} - {args}")
+                    write_to_log(" 路 Client 路 Failed to save to text file, key not identified")
 
-                    type_cmd = check_cmd(cmd)
+            else:
+                self._recvfunc(self.__recieved_message) #insert the message into the gui
+            
 
-                    if type_cmd == 2:
-                        # Protocol 2.7
+            if self.__recieved_message==KICK_MSG:
+                discsuccess = self.disconnect() # disconnect the client from server
+                
+                if discsuccess: # confirm diconnect
+                    write_to_log(f" 路 Client 路 You have been been kicked")
 
-                        return_msg = self.__protocol_27.create_response(cmd, args, client_socket)
+                else: # if doesnt diconnect
+                    self._last_error = f"Error in client bl [always_listen function], failed to diconnect client when kicked by server"
+                    write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
 
-                        if return_msg[4:] == LOG_MSG:
-                            self._clientstablecallback(client_addr[0], client_addr[1], False, False) # remove client not logged in
-                            self._clientstablecallback(client_addr[0], client_addr[1], True, True) # insert client that ist shows that it changed
-
-                        if cmd != "SEND_PHOTO":
-                            # We don't want to send something while sending photo
-                            # It will interrupt the data
-
-                            write_to_log(f"  Server    · send to client : {return_msg}")
-
-                            # Send the response
-                            client_socket.send(return_msg.encode(FORMAT))
-
-                    else:
-                        #Protocol 2.6
-                        return_msg = self.__protocol_26.create_response(cmd)
-
-                        write_to_log(f"  Server    · send to client : {return_msg}")
-
-                        # Send the response
-                        client_socket.send(return_msg.encode(FORMAT))
-
-        # Close client socket and delete client from list
-                        
-        self.__delete_client(client_addr)
-
-        if self._clientstablecallback is not None: # Remove the client from the gui table
-            self._clientstablecallback(client_addr[0], client_addr[1], False, False) 
-        
-        client_socket.close()
-        write_to_log(f"  Server    · closed client {client_addr}")
+                connected = False # close loop
+    

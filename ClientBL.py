@@ -9,13 +9,14 @@ from ecdsa.util import sigencode_string
  
 class ClientBL:
 
-    def __init__(self, ip: str, port: int, recv_callback):
+    def __init__(self, ip: str, port: int, recv_callback, username:str, c_address:str):
         # Here will be not only the init process of data
         # but also the connect event
 
         self._socket_obj: socket = None
         
-
+        self.__user = username
+        self.__c_address = c_address
         self.__recieved_message = None
         self._last_error = ""
         self._balance = {}
@@ -30,8 +31,10 @@ class ClientBL:
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
 
-            self._socket_obj.send()
-            #always recieve data from server to know if kicked
+            # let the hub know im a client. 1 is client type
+            self._socket_obj.send(format_data(self.__user + ">1").encode())
+
+            #always recieve data from server
             self.__always_recieve()
             # Log the data
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
@@ -61,7 +64,7 @@ class ClientBL:
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} closing")
 
             # Alert the server we're closing this client
-            self.send_data(DISCONNECT_MSG, "")
+            self.send_data(DISCONNECT_MSG)
 
             self._recvfunc("Disconnected.")
             # Close client socket
@@ -150,7 +153,7 @@ class ClientBL:
             self._socket_obj.settimeout(3) # set a timeout for recievedata
 
             self.__recieved_message = self.receive_data() # update 
-
+            """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
                 key = self.__recieved_message[REG_MSG.__len__():]
@@ -163,9 +166,9 @@ class ClientBL:
                 else:
                     write_to_log(" 路 Client 路 Failed to save to text file, key not identified")
 
-            else:
-                self._recvfunc(self.__recieved_message) #insert the message into the gui
-            
+            else: 
+            #    self._recvfunc(self.__recieved_message) #insert the message into the gui
+            """
 
             if self.__recieved_message==KICK_MSG:
                 discsuccess = self.disconnect() # disconnect the client from server

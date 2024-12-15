@@ -89,19 +89,19 @@ class CServerBL:
                 if connected_socket:
                     connectedsession: Session = Session(client_addr[0], client_addr[1], connected_socket)
                     self._sessionlist.append(connectedsession)
-                    # Start a new thread for a new client
+                    
                     firstmessage: str = receive_buffer(connected_socket)
 
                     typeuser = firstmessage.split('>')
-                    connectedsession.connectupdate(typeuser[0], typeuser[1])
+                    connectedsession.connectupdate(typeuser[0], typeuser[1]) #get the username and type
                         
-                    if connectedsession.gettype()==1:
+                    if connectedsession.gettype()==1: # if client
                         new_client_thread = threading.Thread(target=self.__handle_client, args=(connectedsession))
-                        new_client_thread.start()
+                        new_client_thread.start() # Start a new thread for a new client
                     
-                    if connectedsession.gettype()==2:
+                    if connectedsession.gettype()==2: # if miner
                         new_miner_thread = threading.Thread(target=self.__handle_miner, args=(connectedsession))
-                        new_miner_thread.start()
+                        new_miner_thread.start() # Start a new thread for a new miner
 
                     
 
@@ -165,21 +165,18 @@ class CServerBL:
                 # if we managed to get the message :
                 write_to_log(f"  Server    · received from client : {user} - {msg}")
 
-                self._mutex.acquire()
-                try:
-                    if self._receive_callback is not None:
-                        if not msg.startswith("LOGIN"):
-                            self._receive_callback(f"{user} - {msg}")    
-                        else:
-                            self._receive_callback(f"{user} - LOGIN > Username, Password")
+                #self._mutex.acquire()
+                #try:
+                #    if self._receive_callback is not None:
+                #        if not msg.startswith("LOGIN"):
+                #            self._receive_callback(f"{user} - {msg}")    
+                #        else:
+                #            self._receive_callback(f"{user} - LOGIN > Username, Password")
 
-                except Exception as e:
-                    write_to_log(f"  Server    · some error occurred : {e}")
-                finally:
-                    self._mutex.release()
-
-                # Parse from buffer
-                #cmd, args = convert_data(msg)
+                #except Exception as e:
+                #    write_to_log(f"  Server    · some error occurred : {e}")
+                #finally:
+                #    self._mutex.release()
 
                 # If the client wants to disconnect
                 if msg == DISCONNECT_MSG:
@@ -210,6 +207,17 @@ class CServerBL:
             if success:
                 # if we managed to get the message :
                 write_to_log(f"  Server    · received from miner : {user} - {msg}")    
+
+                #retransmitting the block
+                for session in self._sessionlist:
+                        
+                        if(session.gettype==1):
+                            #retransmit the transacion to the clients
+                            session.getsocket().send(format_data(msg).encode())
+
+
+
+
                 
                 
                 

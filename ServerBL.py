@@ -214,6 +214,19 @@ class CServerBL:
                         if(session.gettype==1):
                             #retransmit the transacion to the clients
                             session.getsocket().send(format_data(msg).encode())
+                            
+                            write_to_log(f" Server / sent the block to the client {session.getusername()}")
+                            
+                        else:
+                            self._last_error = f"clients {session.getusername()} socket is wrong "
+                            
+                            #push the error in gui
+            
+            else:
+                self._last_error = f"clients {session.getusername()} socket is wrong "
+                write_to_log(" Server / ")
+                            #push the error in gui
+                            
 
 
 

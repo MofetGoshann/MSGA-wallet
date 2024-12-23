@@ -71,7 +71,16 @@ class Miner:
 
             return False
     
-    def disassemble_transaction(self):
+    def disassemble_transaction(self, transaction: str):
+        
+        trans_list: list = transaction.split(">")
+        
+        public_key = trans_list[2]
+
+        enc_transaction = trans_list[0]
+        
+        signature = trans_list[1]
+        
         
 
     

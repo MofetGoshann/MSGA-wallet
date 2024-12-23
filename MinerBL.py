@@ -1,6 +1,12 @@
 import socket
 import protocol
 from protocol import *
+import ecdsa
+from ecdsa import SigningKey, NIST256p
+from ecdsa.util import sigencode_string
+
+
+
 class Miner:
     def __init__(self, ip:str, port: int, username:str):
     
@@ -71,15 +77,31 @@ class Miner:
 
             return False
     
-    def disassemble_transaction(self, transaction: str):
+    def __verify_transaction(self, transmsg_full: str):
+        try:
         
-        trans_list: list = transaction.split(">")
+            trans_list: list = transmsg_full.split(">")
         
-        public_key = trans_list[2]
-
-        enc_transaction = trans_list[0]
+            public_key = ecdsa.VerifyingKey.from_string(trans_list[2],NIST256p)
         
-        signature = trans_list[1]
+            enc_transaction = trans_list[0]
+        
+            byte_signature = trans_list[1].encode()
+        
+            is_valid = public_key.verify(byte_signature, enc_transaction,None)
+        
+            return is_valid
+        except Exception as e:
+            write_to_log(f" Miner / failed to verify a transaction ; {e}")
+            
+            self._last_error = "failed to verify a transaction"
+            
+            return False
+    
+    
+            
+    
+        
         
         
 

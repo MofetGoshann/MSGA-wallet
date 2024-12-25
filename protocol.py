@@ -3,6 +3,11 @@ import shutil
 import logging
 import socket
 
+    #helpinginfo
+    # < divider of the transactioninfo
+    # > divider of the transaction
+    # - divider of the block
+    # = divider of the transactionlist
 
 DISCONNECT_MSG = "EXIT"
 KICK_MSG = "You have been kicked."
@@ -10,6 +15,7 @@ LOG_FILE: str = "LogFile.log"
 FORMAT: str = "utf-8"
 LOG_MSG = "Successfully logged in."
 REG_MSG = "Successfully registered, enjoy!"
+BAD_TRANS_MSG = "Transaction you sent has failed verification"
 PORT: int = 12345
 BUFFER_SIZE: int = 1024
 HEADER_SIZE = 4

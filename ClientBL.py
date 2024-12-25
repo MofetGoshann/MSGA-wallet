@@ -6,6 +6,7 @@ import hashlib
 import ecdsa
 from ecdsa import SigningKey, NIST256p
 from ecdsa.util import sigencode_string
+import sqlite3
  
 class ClientBL:
 
@@ -86,15 +87,15 @@ class ClientBL:
             return False
 
     def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> str:
-
-        transaction: str = send_address + ">" + amount + ">" + token + ">" + rec_address
+        
+        transaction: str = send_address + "<" + amount + "<" + token + "<" + rec_address
         enc_transaction = hashlib.sha256(transaction)
         try:
             signature = private_key.sign_deterministic(enc_transaction, hashfunc=sha256,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
 
 
-            return enc_transaction.hexdigest() + ">" + signature + ">" + public_key.to_string()
+            return transaction + ">" + signature + ">" + public_key.to_string()
 
         except Exception as e:
             write_to_log(f" 路 Client 路 failed to assemble transaction {e}")
@@ -109,9 +110,6 @@ class ClientBL:
         """
         try:
 
-            # If our command is not related to protocol 2.7 at all
-
-            # we will use protocol 2.6
             message: str = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
             encoded_msg: bytes = message.encode(FORMAT)
 
@@ -134,15 +132,18 @@ class ClientBL:
 
 
 
-
+    def __always_recieve(self, *args):
+        """setup a thread to always recieve messages"""
+        try:
+            listening_thread = threading.Thread(target=self.__always_listen, args=())
+            listening_thread.start()
+        except Exception as e:
+            self._last_error = f"Error in client bl [always recieve function]\nError : {e}"
+            write_to_log(f" 路 Client 路 always recieve thread not working; {e}")
 
     
         
     
-
-
-
-
 
 
     def __always_listen(self):
@@ -181,4 +182,11 @@ class ClientBL:
                     write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
 
                 connected = False # close loop
+            
+            else:
+                #send transation
+                
+                
+            
+            
     

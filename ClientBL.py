@@ -7,7 +7,9 @@ import ecdsa
 from ecdsa import SigningKey, NIST256p
 from ecdsa.util import sigencode_string
 import sqlite3
- 
+import binascii
+
+
 class ClientBL:
 
     def __init__(self, ip: str, port: int, recv_callback, username:str, c_address:str):
@@ -18,7 +20,7 @@ class ClientBL:
         
         self.__user = username
         self.__c_address = c_address
-        self.__recieved_message = None
+        self.__recieved_message:str = None
         self._last_error = ""
         self._balance = {}
         self._recvfunc = recv_callback
@@ -86,16 +88,17 @@ class ClientBL:
 
             return False
 
-    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> str:
+    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bytes:
         
         transaction: str = send_address + "<" + amount + "<" + token + "<" + rec_address
-        enc_transaction = hashlib.sha256(transaction)
         try:
-            signature = private_key.sign_deterministic(enc_transaction, hashfunc=sha256,sigencode=sigencode_string)
+            signature = private_key.sign_deterministic(transaction, hashfunc=sha256 ,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
+            
+            hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode()
+            hexedsig = binascii.hexlify(signature).decode()
 
-
-            return transaction + ">" + signature + ">" + public_key.to_string()
+            return transaction + ">"+ hexedsig +">" + hexedpub
 
         except Exception as e:
             write_to_log(f" 路 Client 路 failed to assemble transaction {e}")
@@ -110,10 +113,9 @@ class ClientBL:
         """
         try:
 
-            message: str = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
-            encoded_msg: bytes = message.encode(FORMAT)
+            message: bytes = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
 
-            self._socket_obj.send(encoded_msg)
+            self._socket_obj.send(format_data(message).encode())
 
             write_to_log(f" 路 Client 路 send to server : {message}")
 
@@ -127,7 +129,19 @@ class ClientBL:
 
             return False
 
+    def __receive_data(self):
+        try:
+            success, message = receive_buffer(self._socket_obj)
+            if not success:
+                self._last_error = "didn`t recieve a message"
+                return
+            return message
+        except Exception as e:
 
+            # Handle failure
+            write_to_log(f" Client / failed to receive from server : {e}")
+            self._last_error = f"An error occurred in client bl [receive_data function]\nError : {e}"
+            return ""
 
 
 
@@ -146,14 +160,14 @@ class ClientBL:
     
 
 
-    def __always_listen(self):
+    def __always_listen(s):
         """always recieve messages from server primarily to get kick message"""
 
         connected = True
         while connected:
-            self._socket_obj.settimeout(3) # set a timeout for recievedata
+            s._socket_obj.settimeout(3) # set a timeout for recievedata
 
-            self.__recieved_message = self.receive_data() # update 
+            s.__recieved_message = s.__receive_data() # update 
             """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
@@ -171,20 +185,37 @@ class ClientBL:
             #    self._recvfunc(self.__recieved_message) #insert the message into the gui
             """
 
-            if self.__recieved_message==KICK_MSG:
-                discsuccess = self.disconnect() # disconnect the client from server
+            if s.__recieved_message==KICK_MSG:
+                discsuccess = s.disconnect() # disconnect the client from server
                 
                 if discsuccess: # confirm diconnect
                     write_to_log(f" 路 Client 路 You have been been kicked")
 
                 else: # if doesnt diconnect
-                    self._last_error = f"Error in client bl [always_listen function], failed to diconnect client when kicked by server"
+                    s._last_error = f"Error in client bl [always_listen function], failed to diconnect client when kicked by server"
                     write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
 
                 connected = False # close loop
             
-            else:
-                #send transation
+            elif s.__recieved_message==BAD_TRANS_MSG:
+                #faulty transaction
+                s._last_error = f"Error in client bl the transaction sent is invalid "
+            
+            elif s.__recieved_message.startswith(BLOCKSENDMSG):
+                s.__addtheblock(s.__recieved_message)
+                #got a block from the miner
+
+    
+    def __addtheblock(s, block_header: str):
+        block_header = block_header[BLOCKSENDMSG.__len__():]
+
+        infolist = block_header.split("-")
+        prevhash = infolist[0]
+
+        time = infolist[1]
+
+        nonce = infolist[2]
+        
                 
                 
             

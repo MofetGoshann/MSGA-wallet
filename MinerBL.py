@@ -7,17 +7,21 @@ from ecdsa.util import sigencode_string
 from hashlib import sha256
 import datetime
 import threading
+import random
 
 class Block:
 
     def __init__(self, previous_block_hash, transaction_list):
         self.previous_block_hash = previous_block_hash
         self.transaction_list = transaction_list
-        self.block_data =  previous_block_hash +"-"+ datetime.datetime.now() + "-" +  "=".join(transaction_list)
+        self.__nonce = 0
+        self.block_data =  previous_block_hash +"-"+ datetime.datetime.now() + "-" + self.__nonce
         self.block_hash = hashlib.sha256(self.block_data.encode()).hexdigest()
     
     def gethash(self):
         return self.block_hash
+    def getdata(self):
+        return self.block_data
 
 
 class Miner:
@@ -135,6 +139,7 @@ class Miner:
             if not success:
                 self._last_error = "didn`t recieve a message"
                 return
+            return message
         except Exception as e:
 
             # Handle failure
@@ -152,6 +157,7 @@ class Miner:
             self._socket_obj.settimeout(3) # set a timeout for recievedata
 
             self.__recieved_message = self.__receive_data() # update 
+                
             """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
@@ -168,6 +174,8 @@ class Miner:
             else: 
             #    self._recvfunc(self.__recieved_message) #insert the message into the gui
             """
+
+
 
             if self.__recieved_message==KICK_MSG:
                 discsuccess = self.disconnect() # disconnect the client from server
@@ -192,12 +200,13 @@ class Miner:
                         
                         thisb = Block(self.__last_block_hash, self.__translist)
 
-                        self._socket_obj.send(format_data(thisb.block_data).encode())
+                        self._socket_obj.send(format_data(BLOCKSENDMSG + thisb.getdata())).encode()
+
                         
                         self.__last_block_hash = thisb.gethash() # update the previous hash
                 
                 else:
-                    # handale if faulted transaction
+                    # handle if faulted transaction
                     self._socket_obj.send(format_data(BAD_TRANS_MSG).encode())
                         
                         

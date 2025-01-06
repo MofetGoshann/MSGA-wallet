@@ -12,7 +12,7 @@ from datetime import datetime
 
 class ClientBL:
 
-    def __init__(self, ip: str, port: int, recv_callback, username:str, c_address:str):
+    def __init__(self, ip: str, port: int, username:str, c_address:str):
         # Here will be not only the init process of data
         # but also the connect event
 
@@ -24,7 +24,7 @@ class ClientBL:
         self.__last_tr = None
         self._last_error = ""
         self._balance = {}
-        self._recvfunc = recv_callback
+        self._recvfunc =None #recv_callback
         self._success = self.__connect(ip, port)
 
     def __connect(self, ip: str, port: int) -> bool:
@@ -160,7 +160,9 @@ class ClientBL:
 
     
         
-    
+    def _send_block(s):
+        send_block(1, s._socket_obj, "Client")
+        
 
 
     def __always_listen(s):
@@ -218,6 +220,9 @@ class ClientBL:
         time = infolist[1]
 
         nonce = infolist[2]
+    
+    def get_success(s):
+        return s._success
         
                 
                 

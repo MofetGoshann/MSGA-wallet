@@ -103,7 +103,7 @@ def check_address(address:bytes):
     pass
 
 
-def send_block(blockid: int, skt :socket) -> bool:
+def send_block(blockid: int, skt :socket, type:str) -> bool:
     '''
     sends a block with a specific index to a socket
     returns true if sent all without problems
@@ -111,7 +111,7 @@ def send_block(blockid: int, skt :socket) -> bool:
     '''
     
 
-    conn = sqlite3.connect('dbs/blockchain.db')
+    conn = sqlite3.connect(f"databases/{type}/blockchain.db") # client/node/miner
     cursor = conn.cursor()
     #getting the block header
     cursor.execute(f'''
@@ -141,18 +141,18 @@ def send_block(blockid: int, skt :socket) -> bool:
             write_to_log(f" protocol / failed to send a block with index {blockid}")
             return False
 
-def recieve_block(skt: socket):
+def recieve_trs(skt: socket, typpe:str):
     '''
     recieves a blocks transactions
     returns true if all are saved 
     '''
-    conn = sqlite3.connect('dbs/transactions.db')
+    conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
     cursor = conn.cursor()
 
     skt.settimeout(5)
     recieving =True
     try:
-        while recieving:
+        while recieving: # while loop to get all the transactions
             buffer_size = int(skt.recv(HEADER_SIZE).decode())
             transaction = list(skt.recv(buffer_size))
             
@@ -164,10 +164,17 @@ def recieve_block(skt: socket):
         conn.commit()
         return True
     except Exception as e:
+        #handle failure
         write_to_log(f" protocol / error in saving/recieving the block ; exception: {e}")
         return False
 
-
+def recieve_block(typpe:str):
+    '''
+    recieves a blocks transactions
+    returns true if all are saved 
+    '''
+    conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
+    cursor = conn.cursor()
 
 
 

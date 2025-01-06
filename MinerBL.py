@@ -38,9 +38,9 @@ class Miner:
         thisdir = os.path.dirname(os.path.abspath(__file__))
         blockdir = os.path.join(thisdir, "blocks")
 
-        lastbfilepath = os.path.join(blockdir,os.listdir(blockdir)[-1])
-        with open(lastbfilepath, 'r') as file:
-            lastbdict = json.load(file)
+        #lastbfilepath = os.path.join(blockdir,os.listdir(blockdir)[-1])
+        #with open(lastbfilepath, 'r') as file:
+        #    lastbdict = json.load(file)
         
         
 

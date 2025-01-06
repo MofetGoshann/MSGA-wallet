@@ -86,9 +86,7 @@ dic = json.dumps(di, indent=3)
 with open("asd.json", "a") as f:
     f.write(dic+ "\n")
 '''
-thisdir = os.path.dirname(os.path.abspath(__file__))
-blockdir = os.path.join(thisdir, "blocks")
-print(os.listdir(blockdir)[-1])
+
 
 '''
 num = 5

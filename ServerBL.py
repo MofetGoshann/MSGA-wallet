@@ -195,6 +195,7 @@ class CServerBL:
         
         user = miner_session.getusername()
         sock = miner_session.getsocket()
+        #
         
         write_to_log(f"  Server   new client : {user} connected")
         

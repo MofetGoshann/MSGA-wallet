@@ -1,5 +1,4 @@
 import socket
-import protocol
 from protocol import *
 import ecdsa
 from ecdsa import SigningKey, NIST256p
@@ -7,32 +6,57 @@ from ecdsa.util import sigencode_string
 from hashlib import sha256
 import datetime
 import threading
-import random
+import binascii
+import json
+import os
 
 class Block:
 
-    def __init__(self, previous_block_hash, transaction_list):
+    def __init__(self, previous_block_hash, transaction_list, id: int):
         self.previous_block_hash = previous_block_hash
         self.transaction_list = transaction_list
         self.__nonce = 0
         self.block_data =  previous_block_hash +"-"+ datetime.datetime.now() + "-" + self.__nonce
         self.block_hash = hashlib.sha256(self.block_data.encode()).hexdigest()
+        self.__block_id = id
     
     def gethash(self):
         return self.block_hash
     def getdata(self):
         return self.block_data
+    
+    def getid(s):
+        return s.__block_id
+    
+    def mine(s):
+        pass    
 
 
 class Miner:
+
+    def findprevblock(self):
+        thisdir = os.path.dirname(os.path.abspath(__file__))
+        blockdir = os.path.join(thisdir, "blocks")
+
+        lastbfilepath = os.path.join(blockdir,os.listdir(blockdir)[-1])
+        with open(lastbfilepath, 'r') as file:
+            lastbdict = json.load(file)
+        
+        
+
+
+
+
+
+
     def __init__(self, ip:str, port: int, username:str):
     
         self.__transactioncap = 3 # how many transactions in one block
         self._socket_obj: socket = None
         self.__recieved_message = None 
         self.__user = username
-        self.__last_block_hash = None
-        self.__translist = []
+        self.__transfile = {}
+        self.__thisb: Block = Block("0"*64, )
         
 
         self.__connect()
@@ -99,26 +123,30 @@ class Miner:
 
             return False
     
-    def __verify_transaction(self, transmsg_full: str):
+    def __verify_transaction(self, transmsg_full: str) -> (bool, dict):
+        '''
+        takes the full transaction message with signature transaction and public key
+        returns true if transaction is valid and returns the transaction text
+        '''
         try:
+            transmsg_full:dict = json.loads(transmsg_full)
+            trans_dict: dict = json.loads(transmsg_full["transaction"]) 
+
+            hexedpublickey = trans_dict["public_key"]
+
+            public_key:ecdsa.VerifyingKey = ecdsa.VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
         
-            trans_list: list = transmsg_full.split("<") #putting all in ne list 
+            hexedsignature = trans_dict["signature"]
+            signature: bytes = binascii.unhexlify(hexedsignature)
         
-            public_key = ecdsa.VerifyingKey.from_string(trans_list[2],NIST256p) # extracting he key
+            is_valid = public_key.verify(signature, str(trans_dict).encode(),sha256,sigencode=sigencode_string) # verifying
         
-            transaction = trans_list[0] # extracting the transaction
+            return is_valid, transmsg_full
         
-            byte_signature = trans_list[1].encode() #byting the signature
-        
-            is_valid = public_key.verify(byte_signature, transaction,sha256,sigencode=sigencode_string) # decrypting with key the signature(encrypted trnsaction w/ the private key)
-        
-            return is_valid
         except Exception as e: # failure
             write_to_log(f" Miner / failed to verify a transaction ; {e}")
-            
             self._last_error = "failed to verify a transaction"
-            
-            return False
+            return False, ""
         
         
     
@@ -190,10 +218,11 @@ class Miner:
                 connected = False # close loop
                 
             else:
-                success = self.__verify_transaction(self.__recieved_message) # verify the transaction
+                success, full_trans_dict = self.__verify_transaction(self.__recieved_message) # verify the transaction
                 
                 if success:
-                    self.__translist.append(self.__recieved_message)
+                    with open(f"block_{str(thisb.getid())}.json", "a") as file: # store the transaction
+                        file.write(full_trans_dict + "\n")
                     
                     if len(self.__translist)>= self.__transactioncap: # if the transaction is last
                         #create a block and start to mine

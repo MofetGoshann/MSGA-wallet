@@ -8,7 +8,7 @@ from ecdsa import SigningKey, NIST256p
 from ecdsa.util import sigencode_string
 import sqlite3
 import binascii
-
+from datetime import datetime
 
 class ClientBL:
 
@@ -21,6 +21,7 @@ class ClientBL:
         self.__user = username
         self.__c_address = c_address
         self.__recieved_message:str = None
+        self.__last_tr = None
         self._last_error = ""
         self._balance = {}
         self._recvfunc = recv_callback
@@ -34,10 +35,10 @@ class ClientBL:
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
 
-            # let the hub know im a client. 1 is client type
+            # let the node know im a client. 1 is client type
             self._socket_obj.send(format_data(self.__user + ">1").encode())
 
-            #always recieve data from server
+            #always recieve data from node
             self.__always_recieve()
             # Log the data
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
@@ -88,17 +89,19 @@ class ClientBL:
 
             return False
 
-    def assemble_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bytes:
-        
-        transaction: str = send_address + "<" + amount + "<" + token + "<" + rec_address
+    def assemble_transaction(self, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bytes:
+        time = datetime.now().strftime(f"%d.%m.%Y ; %H:%M:%S.%f")[:-3]
+        transaction:str = str(list(self.__last_tr, time ,self.__c_address, rec_address , amount, token))
         try:
             signature = private_key.sign_deterministic(transaction, hashfunc=sha256 ,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
             
-            hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode()
-            hexedsig = binascii.hexlify(signature).decode()
+            hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
+            hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            return transaction + ">"+ hexedsig +">" + hexedpub
+            wholetransaction = list (transaction,hexedsig,hexedpub)
+
+            return str(wholetransaction)
 
         except Exception as e:
             write_to_log(f" 路 Client 路 failed to assemble transaction {e}")

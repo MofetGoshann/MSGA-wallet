@@ -8,6 +8,10 @@ import socket
 from select import select
 import binascii
 import datetime
+import threading
+import json
+import os
+
 '''
 key = SigningKey.generate(curve=NIST256p)
 public = key.get_verifying_key()
@@ -57,13 +61,34 @@ e2 = base64.b32encode(t2)
 print(e1)
 print(e2)
 '''
-
+'''
 priv = ecdsa.SigningKey.generate()
 pub :ecdsa.VerifyingKey = priv.get_verifying_key()
 sign = priv.sign_deterministic("q".encode(), hashfunc=sha256 ,sigencode=sigencode_string)
 pubs = pub.to_string("compressed")
 hexpubs = binascii.hexlify(sign)
-print(datetime.datetime.now())
+h = hashlib.sha256("q".encode())
+q= "q".encode()
+c = True
+nonce = str(0).encode()
+count = 0
+while c:
+    if hashlib.sha256(q+nonce).hexdigest().startswith("0000"):
+        c = False
+        print(hashlib.sha256(q+nonce).hexdigest())
+        break
+    count+=1
+    nonce = str(count).encode()
+    print(count)
+
+di = {"age":2, "country":"russia"}
+dic = json.dumps(di, indent=3)
+with open("asd.json", "a") as f:
+    f.write(dic+ "\n")
+'''
+thisdir = os.path.dirname(os.path.abspath(__file__))
+blockdir = os.path.join(thisdir, "blocks")
+print(os.listdir(blockdir)[-1])
 
 '''
 num = 5

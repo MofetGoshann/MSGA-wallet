@@ -2,9 +2,11 @@ import hashlib
 import shutil
 import logging
 import socket
+from socket import socket
 from hashlib import sha256
 from hashlib import blake2s
 import base64
+import sqlite3
 
     #helpinginfo
     # < divider of the transactioninfo
@@ -82,7 +84,6 @@ def receive_buffer(my_socket: socket) -> (bool, str):
 
         return True, buffer.decode()
     except Exception as e:
-
         # On buffer size convert fail
         return False, "Error"    
     
@@ -100,6 +101,74 @@ def address_from_key(public_key:bytes):
 
 def check_address(address:bytes):
     pass
+
+
+def send_block(blockid: int, skt :socket) -> bool:
+    '''
+    sends a block with a specific index to a socket
+    returns true if sent all without problems
+    false if failed to retrieve from the tables
+    '''
+    
+
+    conn = sqlite3.connect('dbs/blockchain.db')
+    cursor = conn.cursor()
+    #getting the block header
+    cursor.execute(f'''
+            SELECT * FROM blocks WHERE id = {blockid}
+            ''')
+    
+    block_header = list(cursor.fetchall()[0]) # retrieve the block header to send first
+    if block_header: # if valid
+        str_header = ">".join(map(str, block_header))
+        # getting the transaction list
+        cursor.execute(f'''
+        SELECT * FROM transactions WHERE block_id = {blockid}
+                    ''')
+        
+        trans_list = cursor.fetchall()
+        if trans_list: # if valid
+            skt.send(format_data(BLOCKSENDMSG+">"+str_header).encode()) # sending the starter
+
+            for tr in trans_list: # sending all the transactions
+                str_tr = ">".join(map(str, list(tr)))
+                skt.send(format_data(str_tr).encode())
+            
+            return True
+            
+        else:
+            #the block id is false
+            write_to_log(f" protocol / failed to send a block with index {blockid}")
+            return False
+
+def recieve_block(skt: socket):
+    '''
+    recieves a blocks transactions
+    returns true if all are saved 
+    '''
+    conn = sqlite3.connect('dbs/transactions.db')
+    cursor = conn.cursor()
+
+    skt.settimeout(5)
+    recieving =True
+    try:
+        while recieving:
+            buffer_size = int(skt.recv(HEADER_SIZE).decode())
+            transaction = list(skt.recv(buffer_size))
+            
+            cursor.execute(f'''
+            INSERT INTO transactions (tr_hash, block_id, previous_tr_hash, timestamp, sender, reciever, amount, token)
+            VALUES {str(transaction)}
+            ''')
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        write_to_log(f" protocol / error in saving/recieving the block ; exception: {e}")
+        return False
+
+
+
 
 
 class ShevahBlock:

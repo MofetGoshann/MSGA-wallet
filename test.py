@@ -11,7 +11,7 @@ import datetime
 import threading
 import json
 import os
-
+import sqlite3
 '''
 key = SigningKey.generate(curve=NIST256p)
 public = key.get_verifying_key()
@@ -102,4 +102,17 @@ print(len(pubs))
 print(len(pubs + ">".encode()))
 print(num.encode())
 
-'''
+
+l = ["q", "w", "e"]
+print(str(tuple(l)))
+
+conn = sqlite3.connect(f"databases/Miner/blockchain.db") # client/node/miner
+cursor = conn.cursor()
+
+cursor.execute(
+        SELECT * FROM transactions WHERE block_id = {1}
+                    )
+
+trans_list = cursor.fetchall()
+print(type(trans_list[0]))
+print(str(trans_list[0]))'''

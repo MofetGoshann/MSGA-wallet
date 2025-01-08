@@ -2,7 +2,6 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 from ClientBL import ClientBL
-import ClientBL
 from protocol import *
 #  endregion
 
@@ -61,7 +60,7 @@ class ClientGUI:
 
         # Disable resize to fit with the background image
         self._window.resizable(False, False)
-        self._window.geometry("{}x{}".format(self._back_img_size[0], self._back_img_size[1]))
+        self._window.geometry(f"{self._back_img_size[0]}x{self._back_img_size[1]}")
 
         # Now we need to set up the background of our window with
         # our background image
@@ -84,19 +83,14 @@ class ClientGUI:
         # Connect
         self._connect_button = Button(self._back_canvas,
                                       text="Connect",  command=self.__connect_event,
-                                      
-                                      width=100, height=50
                                       )
         self._connect_button.place(x=100, y=50)
 
         # Send data
         self._send_button = Button(self._back_canvas,
                                    text="Send Data", command=self.__send_data_event,
-                                   
-                                  
-                                   width=100, height=50,
                                    )
-        self._send_button.place(x=100, y=150)
+        self._send_button.place(x=300, y=150)
     
     def draw(s):
         s._window.mainloop()
@@ -108,7 +102,7 @@ class ClientGUI:
         try:
             # Handle failure on casting from string to int
 
-            self._client = ClientBL("0.0.0.0",12345, "qwe", "zxc")
+            self._client: ClientBL= ClientBL(DEFAULT_IP ,13333, "qwe", "zxc")
 
             # check if we successfully created socket
             # and ready to go
@@ -131,7 +125,7 @@ class ClientGUI:
             messagebox.showerror("Error on Connect", error)
     
     def __send_data_event(self):
-        self._client.send
+        self._client.send_blockk()
 
 def main():
     n = ClientGUI()

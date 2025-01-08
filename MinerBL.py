@@ -237,6 +237,10 @@ class Miner:
                 else:
                     # handle if faulted transaction
                     self._socket_obj.send(format_data(BAD_TRANS_MSG).encode())
+    
+
+    def _send_block(s):
+        send_block(1, s._socket_obj, "Miner")
                         
                         
                 

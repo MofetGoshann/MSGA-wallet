@@ -9,6 +9,7 @@ from ecdsa.util import sigencode_string
 import sqlite3
 import binascii
 from datetime import datetime
+import socket
 
 class ClientBL:
 
@@ -34,12 +35,13 @@ class ClientBL:
             # Create and connect socket
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
-
+            write_to_log("q")
             # let the node know im a client. 1 is client type
             self._socket_obj.send(format_data(self.__user + ">1").encode())
-
+            write_to_log("q")
             #always recieve data from node
             self.__always_recieve()
+            write_to_log("q")
             # Log the data
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
 
@@ -160,7 +162,7 @@ class ClientBL:
 
     
         
-    def _send_block(s):
+    def send_blockk(s):
         send_block(1, s._socket_obj, "Client")
         
 
@@ -189,26 +191,26 @@ class ClientBL:
             else: 
             #    self._recvfunc(self.__recieved_message) #insert the message into the gui
             """
+            if not s.__recieved_message==None:
+                if s.__recieved_message==KICK_MSG:
+                    discsuccess = s.disconnect() # disconnect the client from server
+                    
+                    if discsuccess: # confirm diconnect
+                        write_to_log(f" 路 Client 路 You have been been kicked")
 
-            if s.__recieved_message==KICK_MSG:
-                discsuccess = s.disconnect() # disconnect the client from server
+                    else: # if doesnt diconnect
+                        s._last_error = f"Error in client bl [always_listen function], failed to diconnect client when kicked by server"
+                        write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
+
+                    connected = False # close loop
                 
-                if discsuccess: # confirm diconnect
-                    write_to_log(f" 路 Client 路 You have been been kicked")
-
-                else: # if doesnt diconnect
-                    s._last_error = f"Error in client bl [always_listen function], failed to diconnect client when kicked by server"
-                    write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
-
-                connected = False # close loop
-            
-            elif s.__recieved_message==BAD_TRANS_MSG:
-                #faulty transaction
-                s._last_error = f"Error in client bl the transaction sent is invalid "
-            
-            elif s.__recieved_message.startswith(BLOCKSENDMSG):
-                s.__addtheblock(s.__recieved_message)
-                #got a block from the miner
+                elif s.__recieved_message==BAD_TRANS_MSG:
+                    #faulty transaction
+                    s._last_error = f"Error in client bl the transaction sent is invalid "
+                
+                elif s.__recieved_message.startswith(BLOCKSENDMSG):
+                    s.__addtheblock(s.__recieved_message)
+                    #got a block from the miner
 
     
     def __addtheblock(s, block_header: str):
@@ -223,6 +225,12 @@ class ClientBL:
     
     def get_success(s):
         return s._success
+    
+    def getsocket(self):
+        return self._socket_obj
+    
+    def get_last_error(s):
+        return s._last_error
         
                 
                 

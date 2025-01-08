@@ -175,19 +175,9 @@ class NodeBL:
 
                 # If the client wants to disconnect
                 if msg.startswith(BLOCKSENDMSG):
-                    block_header = ">".split(msg)
-                    
-                    
-                    
-                    
-                    
-                    
-                    self._recv_trs()
+                    recieve_block(msg, "Node", self._server_socket)
                     
 
-                    
-                
-                
                 if msg == DISCONNECT_MSG:
                     connected = False
                 
@@ -196,7 +186,7 @@ class NodeBL:
                     
                     for session in self._sessionlist:
                         
-                        if(session.gettype==2):
+                        if(session.gettype()==2):
                             #retransmit the transacion to the miners
                             session.getsocket().send(format_data(msg).encode())
                     
@@ -219,19 +209,24 @@ class NodeBL:
                 # if we managed to get the message :
                 write_to_log(f"  Server    · received from miner : {user} - {msg}")    
 
-                #retransmitting the block
-                for session in self._sessionlist:
-                        
-                        if(session.gettype==1):
-                            #retransmit the transacion to the clients
-                            session.getsocket().send(format_data(msg).encode())
+                if msg.startswith(BLOCKSENDMSG): # if miner is sending a block
+                    (suc,  bl_id) =  recieve_block(msg, "Node", self._server_socket)
+                    if suc: # if recieved block successfully
+                        for session in self._sessionlist:
                             
-                            write_to_log(f" Server / sent the block to the client {session.getusername()}")
-                            
-                        else:
-                            self._last_error = f"clients {session.getusername()} socket is wrong "
-                            
-                            #push the error in gui
+                            if(session.gettype==1):
+                                #retransmit the block to the clients
+                                skt=session.getsocket()
+                                send_block(bl_id, skt, "Node")
+                                
+                                
+                                write_to_log(f" Server / sent the block to the client {session.getusername()}")
+                                
+                            else:
+                                self._last_error = f"clients {session.getusername()} socket is wrong "
+                                
+                                #push the error in gui
+            
             
             else:
                 self._last_error = f"clients {session.getusername()} socket is wrong "

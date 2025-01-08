@@ -6,7 +6,7 @@ from tkinter import messagebox
 from NodeBL import NodeBL
 import threading
 
-DEFAULT_IP: str = "0.0.0.0"
+
 FONT_TITLE: tuple = ("Calibri", 20)
 FONT_BUTTON: tuple = ("Calibri", 14)
 
@@ -71,7 +71,6 @@ class NodeGUI:
         # Buttons
         self._start_button = Button(self._back_canvas,
                                     text="Start", command=self.__start_event,
-                                    
                                     )
         
         self._start_button.place(x=100, y=40)
@@ -83,7 +82,7 @@ class NodeGUI:
         self._start_button.config(state="disabled")
         
         ip = DEFAULT_IP
-        port = 12345
+        port = 13333
 
         self._server = NodeBL(ip, port)
         

@@ -23,7 +23,9 @@ REG_MSG = "Successfully registered, enjoy!"
 BAD_TRANS_MSG = "Transaction you sent has failed verification"
 byte_decode_error = "'utf-8' codec can't decode byte"
 BLOCKSENDMSG = "Sending block..."
+BLOCKSTOPMSG = "Stop recieving transactions"
 PORT: int = 12345
+DEFAULT_IP: str = "0.0.0.0"
 BUFFER_SIZE: int = 1024
 HEADER_SIZE = 4
 
@@ -115,12 +117,11 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
     cursor = conn.cursor()
     #getting the block header
     cursor.execute(f'''
-            SELECT * FROM blocks WHERE id = {blockid}
+            SELECT * FROM blocks WHERE block_id = {blockid}
             ''')
     
-    block_header = list(cursor.fetchall()[0]) # retrieve the block header to send first
+    block_header = cursor.fetchall()[0] # retrieve the block header to send first
     if block_header: # if valid
-        str_header = ">".join(map(str, block_header))
         # getting the transaction list
         cursor.execute(f'''
         SELECT * FROM transactions WHERE block_id = {blockid}
@@ -128,11 +129,11 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
         
         trans_list = cursor.fetchall()
         if trans_list: # if valid
-            skt.send(format_data(BLOCKSENDMSG+">"+str_header).encode()) # sending the starter
+            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
 
             for tr in trans_list: # sending all the transactions
-                str_tr = ">".join(map(str, list(tr)))
-                skt.send(format_data(str_tr).encode())
+                #tr in tuple type
+                skt.send(format_data(str(tr)).encode())
             
             return True
             
@@ -141,7 +142,7 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
             write_to_log(f" protocol / failed to send a block with index {blockid}")
             return False
 
-def recieve_trs(skt: socket, typpe:str):
+def recieve_trs(skt: socket, typpe:str)-> (bool, int):
     '''
     recieves a blocks transactions
     returns true if all are saved 
@@ -154,27 +155,50 @@ def recieve_trs(skt: socket, typpe:str):
     try:
         while recieving: # while loop to get all the transactions
             buffer_size = int(skt.recv(HEADER_SIZE).decode())
-            transaction = list(skt.recv(buffer_size))
-            
+            transaction = skt.recv(buffer_size).decode()
+            if transaction == BLOCKSTOPMSG:
+                break
             cursor.execute(f'''
             INSERT INTO transactions (tr_hash, block_id, previous_tr_hash, timestamp, sender, reciever, amount, token)
             VALUES {str(transaction)}
             ''')
+            conn.commit()
         
-        conn.commit()
         return True
     except Exception as e:
         #handle failure
-        write_to_log(f" protocol / error in saving/recieving the block ; exception: {e}")
+        write_to_log(f" protocol / error in saving/recieving the transactions of the block ; exception: {e}")
         return False
 
-def recieve_block(typpe:str):
+def recieve_block(header:str, typpe:str, skt:socket)->bool:
     '''
-    recieves a blocks transactions
-    returns true if all are saved 
+    saves the block header in the database
     '''
-    conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
-    cursor = conn.cursor()
+    success = True
+    try:
+        conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
+        cursor = conn.cursor()
+
+        head_str = ">".split(header)[1]
+        cursor.execute(f'''
+                INSERT INTO blocks (block_id,
+                    block_hash,
+                    previous_block_hash,
+                    timestamp,
+                    nonce)
+                VALUES {head_str}
+                ''')
+        
+        return recieve_trs(skt, typpe)
+    except Exception as e:
+        
+        write_to_log(f" protocol / couldnt save the block header,type {typpe}; {e}")
+        return False
+    
+    
+
+    
+
 
 
 

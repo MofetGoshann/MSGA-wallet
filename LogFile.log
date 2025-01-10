@@ -1,7 +1,17 @@
-2025-01-08 05:16:20,221 - INFO -   Server    · starting
-2025-01-08 05:16:20,223 - INFO -   Server    · listening on 0.0.0.0
-2025-01-08 05:16:24,949 - INFO - q
-2025-01-08 05:16:24,949 - INFO -   Server    · failed to set up server 'dict' object has no attribute 'append'
-2025-01-08 05:16:24,949 - INFO - q
-2025-01-08 05:16:24,950 - INFO - q
-2025-01-08 05:16:24,950 - INFO -  \u8def Client \u8def ('127.0.0.1', 51734) connected
+2025-01-11 01:11:41,644 - INFO -   Server    · starting
+2025-01-11 01:11:41,645 - INFO -   Server    · listening on 0.0.0.0
+2025-01-11 01:11:44,838 - INFO -   Protocol  · Buffer size : 5
+2025-01-11 01:11:44,838 - INFO -   Protocol  · Buffer data : qwe>1
+2025-01-11 01:11:44,838 - INFO -  \u8def Client \u8def ('127.0.0.1', 35031) connected
+2025-01-11 01:11:44,839 - INFO -   Server   new client : qwe connected
+2025-01-11 01:11:44,839 - INFO -   Server    · active connection 1
+2025-01-11 01:11:46,001 - INFO -   Protocol  · Buffer size : 170
+2025-01-11 01:11:46,001 - INFO -   Protocol  · Buffer data : Sending block...>(3, '0000000000000000000000000000000000000000000000000000000000000001', '0000000001000000000000000000000000000000000000000000000000000000', '10:33', 777)
+2025-01-11 01:11:46,001 - INFO -   Server    · received from client : qwe - Sending block...>(3, '0000000000000000000000000000000000000000000000000000000000000001', '0000000001000000000000000000000000000000000000000000000000000000', '10:33', 777)
+2025-01-11 01:11:46,012 - INFO -   Protocol  · Buffer size : 183
+2025-01-11 01:11:46,012 - INFO -   Protocol  · Buffer data : ('0000000000000000000000000000000000000000000000000000000000000011', 3, '0000000000000000000001100000000000000000000000000000000000000000', '23:19', 'asd', 'asd', 44.9, 'natalaicoin')
+2025-01-11 01:11:46,017 - INFO -   Protocol  · Buffer size : 184
+2025-01-11 01:11:46,017 - INFO -   Protocol  · Buffer data : ('0000000000000000000000000000000000000000000000000000000000000011', 3, '0000000000000000000000000000000000000000000000000000000000000011', '14:34', 'dfsdd', 'rty', 34.3, 'shevahcoin')
+2025-01-11 01:11:46,023 - INFO -   Protocol  · Buffer size : 27
+2025-01-11 01:11:46,023 - INFO -   Protocol  · Buffer data : Stop recieving transactions
+2025-01-11 01:11:46,023 - INFO - Successfully saved the block and transactions

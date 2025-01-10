@@ -3,7 +3,7 @@ from tkinter import *
 from protocol import *
 from tkinter import messagebox
 
-from NodeBL import NodeBL
+from NodeBL import *
 import threading
 
 

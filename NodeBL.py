@@ -1,14 +1,13 @@
 from select import select
 import threading
 from protocol import *
-import socket
 class Session: #session class
     def __init__(self, ip:str, port: str, sock: socket):
         self.__type = None
         self.__ip = ip
         self.__port = port
         self.__username = None
-        self.__socket = None
+        self.__socket = sock
     
     
     def connectupdate(self, username:str, type:int):
@@ -23,6 +22,23 @@ class Session: #session class
     
     def getusername(self):
         return self.__username
+    
+    def __iter__(s):
+        s.l =  [s.__type, s.__ip, s.__port, s.__username, s.__socket]
+        s.i = 0
+        return s
+    
+    def __next__(s):
+        if s.i == len(s.l):
+            s.i+=1
+            return s.l[s.i-1]
+        else:
+            raise StopIteration
+    
+
+    
+    
+
 
 
 class NodeBL:
@@ -30,7 +46,7 @@ class NodeBL:
 
         self.__ip: str = ip
         
-        self._sessionlist: Session = {}
+        self._sessionlist: list= []
         self._server_socket: socket = None
         self.__server_running_flag: bool = False
 
@@ -84,18 +100,17 @@ class NodeBL:
                 if connected_socket:
                     connectedsession: Session = Session(client_addr[0], client_addr[1], connected_socket)
                     self._sessionlist.append(connectedsession)
-                    
-                    firstmessage: str = receive_buffer(connected_socket)
 
-                    typeuser = firstmessage.split('>')
-                    connectedsession.connectupdate(typeuser[0], typeuser[1]) #get the username and type
+                    firstmessage: str = receive_buffer(connected_socket)[1]
+                    typeuser = str(firstmessage).split('>')
+                    connectedsession.connectupdate(typeuser[0], int(typeuser[1])) #get the username and type
                         
                     if connectedsession.gettype()==1: # if client
-                        new_client_thread = threading.Thread(target=self.__handle_client, args=(connectedsession))
+                        new_client_thread = threading.Thread(target=self.__handle_client, args=(connectedsession, ))
                         new_client_thread.start() # Start a new thread for a new client
                     
                     if connectedsession.gettype()==2: # if miner
-                        new_miner_thread = threading.Thread(target=self.__handle_miner, args=(connectedsession))
+                        new_miner_thread = threading.Thread(target=self.__handle_miner, args=(connectedsession, ))
                         new_miner_thread.start() # Start a new thread for a new miner
 
                     
@@ -114,7 +129,7 @@ class NodeBL:
         except Exception as e:
 
             # Handle failure
-            write_to_log(f"  Server    · failed to set up server {e}")
+            write_to_log(f"  Server    · failed to handle a message; {e}")
 
             self._last_error = f"An error occurred in server bl [server_process function]\nError : {e}"
 
@@ -138,10 +153,11 @@ class NodeBL:
 
 
 
-    def __handle_client(self, client_session: Session):
+    def __handle_client(self, connectedsession: Session):
         
-        user = client_session.getusername()
-        sock = client_session.getsocket()
+        user = connectedsession.getusername()
+        sock = connectedsession.getsocket()
+
         # This code run in separate for every client
         write_to_log(f"  Server   new client : {user} connected")
         
@@ -152,7 +168,6 @@ class NodeBL:
         connected = True
 
         while connected:
-
             # Get message from  client
             (success,  msg) = receive_buffer(sock)
 
@@ -173,16 +188,16 @@ class NodeBL:
                 #finally:
                 #    self._mutex.release()
 
-                # If the client wants to disconnect
+                
                 if msg.startswith(BLOCKSENDMSG):
-                    recieve_block(msg, "Node", self._server_socket)
+                    recieve_block(msg, "Node", sock)
                     
-
+                # If the client wants to disconnect
                 if msg == DISCONNECT_MSG:
                     connected = False
                 
                 else:
-                    write_to_log(f"  Server    · client sent a transaction :  -{msg} ")
+
                     
                     for session in self._sessionlist:
                         
@@ -195,9 +210,8 @@ class NodeBL:
         
         user = miner_session.getusername()
         sock = miner_session.getsocket()
-        #
-        
-        write_to_log(f"  Server   new client : {user} connected")
+
+        write_to_log(f"  Server   new miner : {user} connected")
         
         connected = True
         

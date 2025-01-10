@@ -35,13 +35,10 @@ class ClientBL:
             # Create and connect socket
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
-            write_to_log("q")
             # let the node know im a client. 1 is client type
             self._socket_obj.send(format_data(self.__user + ">1").encode())
-            write_to_log("q")
             #always recieve data from node
             self.__always_recieve()
-            write_to_log("q")
             # Log the data
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
 
@@ -163,7 +160,7 @@ class ClientBL:
     
         
     def send_blockk(s):
-        send_block(1, s._socket_obj, "Client")
+        send_block(3, s._socket_obj, "Client")
         
 
 

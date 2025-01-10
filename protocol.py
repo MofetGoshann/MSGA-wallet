@@ -2,11 +2,12 @@ import hashlib
 import shutil
 import logging
 import socket
-from socket import socket
 from hashlib import sha256
 from hashlib import blake2s
 import base64
 import sqlite3
+import time 
+
 
     #helpinginfo
     # < divider of the transactioninfo
@@ -130,11 +131,12 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
         trans_list = cursor.fetchall()
         if trans_list: # if valid
             skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
-
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
-                skt.send(format_data(str(tr)).encode())
-            
+                t= str(tr)
+                skt.send(format_data(t).encode())
+            skt.send(format_data(BLOCKSTOPMSG).encode())
+
             return True
             
         else:
@@ -150,20 +152,23 @@ def recieve_trs(skt: socket, typpe:str)-> (bool, int):
     conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
     cursor = conn.cursor()
 
-    skt.settimeout(5)
+    
     recieving =True
     try:
+        #skt.settimeout(10)
         while recieving: # while loop to get all the transactions
-            buffer_size = int(skt.recv(HEADER_SIZE).decode())
-            transaction = skt.recv(buffer_size).decode()
-            if transaction == BLOCKSTOPMSG:
-                break
-            cursor.execute(f'''
-            INSERT INTO transactions (tr_hash, block_id, previous_tr_hash, timestamp, sender, reciever, amount, token)
-            VALUES {str(transaction)}
-            ''')
-            conn.commit()
-        
+            (success, transaction) = receive_buffer(skt)
+
+            if success:
+                if transaction==BLOCKSTOPMSG:
+                    break
+
+                cursor.execute(f'''
+                INSERT INTO transactions 
+                VALUES {transaction}
+                ''')
+                conn.commit()
+        write_to_log("Successfully saved the block and transactions")
         return True
     except Exception as e:
         #handle failure
@@ -178,16 +183,13 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
     try:
         conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
         cursor = conn.cursor()
-
-        head_str = ">".split(header)[1]
+        head_str = header.split(">")[1]
         cursor.execute(f'''
-                INSERT INTO blocks (block_id,
-                    block_hash,
-                    previous_block_hash,
-                    timestamp,
-                    nonce)
+                INSERT INTO blocks 
                 VALUES {head_str}
                 ''')
+        conn.commit()
+        conn.close()
         
         return recieve_trs(skt, typpe)
     except Exception as e:

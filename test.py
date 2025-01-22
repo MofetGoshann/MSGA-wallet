@@ -116,3 +116,6 @@ cursor.execute(
 trans_list = cursor.fetchall()
 print(type(trans_list[0]))
 print(str(trans_list[0]))'''
+t = ("asd", "dsf", "gg")
+tr = repr(t)
+print(tr)

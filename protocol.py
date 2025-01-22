@@ -295,6 +295,7 @@ def chain_on_start(type: str, skt:socket):
         
         
 def hashex(data:str):
+    '''returns the hash of data hexed'''
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
         
 

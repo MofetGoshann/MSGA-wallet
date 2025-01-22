@@ -90,8 +90,11 @@ class ClientBL:
             return False
 
     def assemble_transaction(self, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bytes:
+        '''gets the transaction info and assembles transaction ready to send
+        (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
         time = datetime.now().strftime(f"%d.%m.%Y ; %H:%M:%S.%f")[:-3]
-        transaction:str = str(list(self.__last_tr, time ,self.__c_address, rec_address , amount, token))
+        transaction = (time ,self.__c_address, rec_address , amount, token)
+        transaction = str(transaction)
         try:
             signature = private_key.sign_deterministic(transaction, hashfunc=sha256 ,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
@@ -99,7 +102,7 @@ class ClientBL:
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            wholetransaction = list (transaction,hexedsig,hexedpub)
+            wholetransaction = (time ,self.__c_address, rec_address , amount, token, hexedsig, hexedpub)
 
             return str(wholetransaction)
 
@@ -116,7 +119,7 @@ class ClientBL:
         """
         try:
 
-            message: bytes = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
+            message: str = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
 
             self._socket_obj.send(format_data(message).encode())
 

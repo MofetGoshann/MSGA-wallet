@@ -9,6 +9,7 @@ import threading
 import binascii
 import json
 import os
+import ast
 
 class Block:
 
@@ -220,8 +221,7 @@ class Miner:
                 success, full_trans_dict = self.__verify_transaction(self.__recieved_message) # verify the transaction
                 
                 if success:
-                    with open(f"block_{str(thisb.getid())}.json", "a") as file: # store the transaction
-                        file.write(full_trans_dict + "\n")
+                    
                     
                     
                 else:
@@ -265,6 +265,32 @@ class Miner:
         # The final hash is the Merkle Root
         return hashes[0]
     
+    def __include_transaction(s, trans):
+        conn = sqlite3.connect(f'databases/Miner/pending.db')
+        cursor = conn.cursor()
+        try:
+            tr_hash = hashex(trans)
+            thisblock = s.__lastb+2
+            transtuple = ast.literal_eval(trans)
+            sender = transtuple[1] # getting the sender address
+            cursor.execute(f'''
+                    SELECT tr_hash from transactions ORDER BY block_id DESC LIMIT 1 WHERE sender={sender}
+                ''')
+            
+            last_hash = cursor.fetchone()
+            
+            full_tr = f'({tr_hash}, {thisblock}, {last_hash}, {trans[1:]}'
+            
+            cursor.execute(f'''
+                    INSERT INTO transactions VALUES {full_tr}
+                ''')
+            
+        except Exception as e:
+            write_to_log(f" Miner / Problem with including the transactions into pending table; {e}")
+            
+            
+    def start_mining()
+        
     
                         
                 

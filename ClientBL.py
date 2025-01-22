@@ -18,7 +18,7 @@ class ClientBL:
         # but also the connect event
 
         self._socket_obj: socket = None
-        
+        self.__lastb = None
         self.__user = username
         self.__c_address = c_address
         self.__recieved_message:str = None
@@ -36,6 +36,7 @@ class ClientBL:
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
             # let the node know im a client. 1 is client type
+            self.__lastb = chain_on_start("Client", self._socket_obj)
             self._socket_obj.send(format_data(self.__user + ">1").encode())
             #always recieve data from node
             self.__always_recieve()
@@ -159,8 +160,8 @@ class ClientBL:
 
     
         
-    def send_blockk(s):
-        send_block(3, s._socket_obj, "Client")
+    def send_blockk(s, id:int):
+        send_block(id, s._socket_obj, "Client")
         
 
 
@@ -205,20 +206,16 @@ class ClientBL:
                     #faulty transaction
                     s._last_error = f"Error in client bl the transaction sent is invalid "
                 
-                elif s.__recieved_message.startswith(BLOCKSENDMSG):
-                    s.__addtheblock(s.__recieved_message)
+                elif s.__recieved_message.startswith(MINEDBLOCKSENDMSG):
+                    header = self.__recieved_message.split(">")[1]
+                    (suc,  bl_id) =  recieve_block(header, "Miner", self._socket_obj)
+                    if suc:
+                        s.__lastb = bl_id
                     #got a block from the miner
 
     
-    def __addtheblock(s, block_header: str):
-        block_header = block_header[BLOCKSENDMSG.__len__():]
 
-        infolist = block_header.split("-")
-        prevhash = infolist[0]
 
-        time = infolist[1]
-
-        nonce = infolist[2]
     
     def get_success(s):
         return s._success

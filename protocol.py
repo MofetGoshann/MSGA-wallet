@@ -24,7 +24,14 @@ REG_MSG = "Successfully registered, enjoy!"
 BAD_TRANS_MSG = "Transaction you sent has failed verification"
 byte_decode_error = "'utf-8' codec can't decode byte"
 BLOCKSENDMSG = "Sending block..."
+MINEDBLOCKSENDMSG = "Sending mined block"
 BLOCKSTOPMSG = "Stop recieving transactions"
+CHAINUPDATEREQUEST = "Can you send me the blockchain from block"
+CHAINUPDATING = "Sending the blocks"
+SAVEDBLOCK = "Saved the whole block"
+ALREADYUPDATED = "You have the whole blockchain"
+WRONGID = "There is no blocks after this id"
+FAILEDTOSAVEBLOCK = "Could not save the block"
 PORT: int = 12345
 DEFAULT_IP: str = "0.0.0.0"
 BUFFER_SIZE: int = 1024
@@ -130,7 +137,7 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
         
         trans_list = cursor.fetchall()
         if trans_list: # if valid
-            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
+            skt.send(format_data(MINEDBLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t= str(tr)
@@ -148,6 +155,7 @@ def recieve_trs(skt: socket, typpe:str)-> (bool, int):
     '''
     recieves a blocks transactions
     returns true if all are saved 
+    returns false if had errors saving
     '''
     conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
     cursor = conn.cursor()
@@ -155,20 +163,20 @@ def recieve_trs(skt: socket, typpe:str)-> (bool, int):
     
     recieving =True
     try:
-        #skt.settimeout(10)
+        skt.settimeout(3) # set timeout and if no data is sent in this time will raise exception to not make endless loop
         while recieving: # while loop to get all the transactions
             (success, transaction) = receive_buffer(skt)
 
-            if success:
-                if transaction==BLOCKSTOPMSG:
+            if success: #when recieved a message
+                if transaction==BLOCKSTOPMSG: #if all transactions are sent
                     break
-
+                #store the transaction
                 cursor.execute(f'''
                 INSERT INTO transactions 
                 VALUES {transaction}
                 ''')
                 conn.commit()
-        write_to_log("Successfully saved the block and transactions")
+
         return True
     except Exception as e:
         #handle failure
@@ -177,48 +185,122 @@ def recieve_trs(skt: socket, typpe:str)-> (bool, int):
 
 def recieve_block(header:str, typpe:str, skt:socket)->bool:
     '''
-    saves the block header in the database
+    saves the block and the transactions in the database
     '''
     success = True
     try:
+        #conncet to the database
         conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
         cursor = conn.cursor()
-        head_str = header.split(">")[1]
+        head_str = header.split(">")[1] # get the string version of the header data
+        #store it in the db
         cursor.execute(f'''
                 INSERT INTO blocks 
                 VALUES {head_str}
                 ''')
         conn.commit()
-        conn.close()
+
+        id = head_str[0] 
+        success =  recieve_trs(skt, typpe) # store the transactions of the block
+        if success:
+            skt.send(format_data(SAVEDBLOCK + str(id)).encode())
+            write_to_log(f"Successfully saved the block {id} and its transactions") # log 
+            return True # if all saved successfully
         
-        return recieve_trs(skt, typpe)
+        else: #if all saved unsuccessfully
+            #delete all the wrong saved data
+            cursor.execute(f''' 
+            DELETE FROM blocks WHERE block_id = {id} ''')
+
+            cursor.execute(f'''
+            DELETE FROM transactions WHERE block_id = {id} ''')
+            conn.commit()
+            conn.close()
+    
     except Exception as e:
-        
+        if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
+            skt.send(format_data("Already have the block").encode())
+        #log the exception
         write_to_log(f" protocol / couldnt save the block header,type {typpe}; {e}")
         return False
     
+def saveblockchain(msg, typpe:str, skt:socket):
+    loops = msg.split(">")[1]
+    count = 0
+    try:
+        while count<loops: # recieve multiple blocks
+        
+            skt.settimeout(3) # exception after 3 seconds of no answer
+            (success, header) = receive_buffer(skt) # getting the header of the block
+            if success:
+                header = header.split(">")[1]
+                (suc,  bl_id) =  recieve_block(header, typpe, skt)
+                if suc:
+                    skt.send(format_data(SAVEDBLOCK+f"{bl_id}").encode())
+                    count+=1
+                else:
+                    skt.send(format_data(FAILEDTOSAVEBLOCK).encode())
+                    break
+    except Exception as e:
+        write_to_log(f" Miner / Failed to save block {bl_id} when updating chain")
+
+
+
+def chain_on_start(type: str, skt:socket):
+    conn = sqlite3.connect(f'databases/{type}/blockchain.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS blocks (
+            block_id INT PRIMARY KEY NOT NULL,
+            block_hash VARCHAR(64) NOT NULL,
+            previous_block_hash VARCHAR(64),
+            timestamp DATETIME NOT NULL,
+            nonce INT NOT NULL
+        )
+        ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            tr_hash VARCHAR(64) NOT NULL,
+            block_id INT NOT NULL,
+            previous_tr_hash VARCHAR(64),
+            timestamp DATETIME NOTNULL,
+            sender VARCHAR(64) NOT NULL,
+            reciever TEXT NOT NULL,
+            amount REAL NOT NULL,
+            token TEXT NOT NULL
+        )
+        ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS balances (
+            username TEXT NOT NULL,
+            address VARCHAR(64) NOT NULL,
+            balance INT NOT NULL
+        )
+        ''')
+    
+    cursor.execute('''
+        SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
+        ''')
+
+    lastb_id= cursor.fetchone()[0] # get the last block
+
+    if lastb_id: # get the chain from last block
+        skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())
+        return lastb_id
+    else:  # get the whole chain
+        skt.send(format_data(CHAINUPDATEREQUEST + f">{1}").encode())
+        
+        
+def hashex(data:str):
+    return hashlib.sha256(data.encode('utf-8')).hexdigest()
+        
+
+
     
 
-    
 
 
 
-
-class ShevahBlock:
-    def __init__(self, previous_block_hash, transaction_list):
-        self.previous_block_hash = previous_block_hash
-        self.transaction_list = transaction_list
-        self.block_data = "-" + previous_block_hash + "-".join(transaction_list)
-        self.block_hash = hashlib.sha256(self.block_data.encode()).hexdigest()
-    def __str__(self) -> str:
-        return None
-    
-
-t1 = "Tal>1488>NC>Misha"
-t2 = "Misha sent 1337 SNC to Trump"
-t3 = "Biden  sent 0.1 TLC to Tal"
-t4 = "Ariel sent 1 SNC to Natali"
-
-FirstB =  ShevahBlock("1488", [t1,t2])
-
-SecondB = ShevahBlock(FirstB.block_hash, [t3,t4])

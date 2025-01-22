@@ -32,33 +32,23 @@ class Block:
         pass    
 
 
+    
+
+
+
+
 class Miner:
-
-    def findprevblock(self):
-        thisdir = os.path.dirname(os.path.abspath(__file__))
-        blockdir = os.path.join(thisdir, "blocks")
-
-        #lastbfilepath = os.path.join(blockdir,os.listdir(blockdir)[-1])
-        #with open(lastbfilepath, 'r') as file:
-        #    lastbdict = json.load(file)
-        
-        
-
-
 
 
 
 
     def __init__(self, ip:str, port: int, username:str):
     
-        self.__transactioncap = 3 # how many transactions in one block
         self._socket_obj: socket = None
         self.__recieved_message = None 
         self.__user = username
-        self.__transfile = {}
-        self.__thisb: Block = Block("0"*64, )
+        self.__lastb = None
         
-
         self.__connect()
         
     
@@ -70,9 +60,10 @@ class Miner:
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
 
-            # let the hub know im a miner. 2 is miner type
+            
+            # let the hub know im a miner and give the block id to update
             self._socket_obj.send(format_data(self.__user + ">2").encode())
-
+            self.__lastb = chain_on_start("Miner", self._socket_obj)
             #always recieve data from server to know if kicked
             self.__always_recieve()
             # Log the data
@@ -203,8 +194,6 @@ class Miner:
             #    self._recvfunc(self.__recieved_message) #insert the message into the gui
             """
 
-
-
             if self.__recieved_message==KICK_MSG:
                 discsuccess = self.disconnect() # disconnect the client from server
                 
@@ -216,7 +205,17 @@ class Miner:
                     write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
 
                 connected = False # close loop
+            
+            if self.__recieved_message.startswith(MINEDBLOCKSENDMSG):
+                header = self.__recieved_message.split(">")[1]
+                (suc,  bl_id) =  recieve_block(header, "Miner", self._socket_obj)
+                if suc:
+                    self.__lastb = bl_id
                 
+            if self.__recieved_message.startswith(CHAINUPDATING):
+                saveblockchain(self.__recieved_message, "Miner", self._socket_obj)
+
+
             else:
                 success, full_trans_dict = self.__verify_transaction(self.__recieved_message) # verify the transaction
                 
@@ -224,16 +223,7 @@ class Miner:
                     with open(f"block_{str(thisb.getid())}.json", "a") as file: # store the transaction
                         file.write(full_trans_dict + "\n")
                     
-                    if len(self.__translist)>= self.__transactioncap: # if the transaction is last
-                        #create a block and start to mine
-                        
-                        thisb = Block(self.__last_block_hash, self.__translist)
-
-                        self._socket_obj.send(format_data(BLOCKSENDMSG + thisb.getdata())).encode()
-
-                        
-                        self.__last_block_hash = thisb.gethash() # update the previous hash
-                
+                    
                 else:
                     # handle if faulted transaction
                     self._socket_obj.send(format_data(BAD_TRANS_MSG).encode())
@@ -241,7 +231,41 @@ class Miner:
 
     def _send_block(s):
         send_block(1, s._socket_obj, "Miner")
-                        
+
+    def build_merkle_tree(s, b_id:int):
+        conn = sqlite3.connect(f'databases/Miner/blockchain.db')
+        cursor = conn.cursor()
+        cursor.execute(f'''
+                        SELECT * FROM transactions WHERE block_id = {b_id}
+                    ''')      
+        transactions = cursor.fetchall()
+        # Base case: If no transactions are provided, return None
+        if not transactions:
+            return None
+        # If only one transaction, the Merkle Root is its hash
+        if len(transactions) == 1:
+            return hashex(transactions[0])
+
+        # Hash all transactions
+        hashes = [hashex(tx) for tx in transactions]
+        # Build the tree until there is only one hash (the root)
+        while len(hashes) > 1:
+            # If the number of hashes is odd, duplicate the last hash
+            if len(hashes) % 2 == 1:
+                hashes.append(hashes[-1])
+
+            # Pairwise combine and hash
+            temp_hashes = []
+            for i in range(0, len(hashes), 2):
+                combined = hashes[i] + hashes[i + 1]
+                temp_hashes.append(hashex(combined))
+
+            hashes = temp_hashes  # Move up to the next level
+
+        # The final hash is the Merkle Root
+        return hashes[0]
+    
+    
                         
                 
                 

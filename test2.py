@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime
-
+import socket
 conn = sqlite3.connect('blockchain.db')
 cursor = conn.cursor()
 
@@ -28,11 +28,27 @@ cursor.execute('''
             ''')
 
 cursor.execute(f'''
-    SELECT * FROM blocks WHERE block_id = {1}
+                SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
                 ''')
 
-result:tuple = cursor.fetchall()[0]
+#result= cursor.fetchone()[0]
 
-b = list(result)
-s = ">".join(map(str, b))
-print(datetime.now().strftime(f"%d.%m.%Y ; %H:%M:%S.%f")[:-3])
+#b = list(result)
+#s = ">".join(map(str, b))
+#print(datetime.now().strftime(f"%d.%m.%Y ; %H:%M:%S.%f")[:-3])
+#print(result)
+class Session: #session class
+    def __init__(self, ip:str, port: str):
+        self.__type = None
+        self.__ip = ip
+        self.__port = port
+        self.__username = None
+        self.__updated = False
+    
+    def getu(s):
+        return s.__updated
+s = Session("123", "22")
+print(s.getu())
+
+
+print(s.getu())

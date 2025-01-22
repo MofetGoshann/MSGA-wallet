@@ -8,6 +8,7 @@ class Session: #session class
         self.__port = port
         self.__username = None
         self.__socket = sock
+        self.__updated = False
     
     
     def connectupdate(self, username:str, type:int):
@@ -23,8 +24,16 @@ class Session: #session class
     def getusername(self):
         return self.__username
     
+
+
+    def setu(s, up:bool):
+        s.__updated = up
+    
+    def getu(s):
+        return s.__updated
+    
     def __iter__(s):
-        s.l =  [s.__type, s.__ip, s.__port, s.__username, s.__socket]
+        s.l =  [s.__type, s.__ip, s.__port, s.__username, s.__socket, s.__updated]
         s.i = 0
         return s
     
@@ -153,10 +162,10 @@ class NodeBL:
 
 
 
-    def __handle_client(self, connectedsession: Session):
+    def __handle_client(self, clientsession: Session):
         
-        user = connectedsession.getusername()
-        sock = connectedsession.getsocket()
+        user = clientsession.getusername()
+        sock = clientsession.getsocket()
 
         # This code run in separate for every client
         write_to_log(f"  Server   new client : {user} connected")
@@ -187,20 +196,15 @@ class NodeBL:
                 #    write_to_log(f"  Server    · some error occurred : {e}")
                 #finally:
                 #    self._mutex.release()
-
-                
-                if msg.startswith(BLOCKSENDMSG):
-                    recieve_block(msg, "Node", sock)
                     
                 # If the client wants to disconnect
                 if msg == DISCONNECT_MSG:
                     connected = False
+                    self._sessionlist.remove(clientsession) # remove the client from session list
                 
                 else:
-
-                    
+                    # the msg is transaction
                     for session in self._sessionlist:
-                        
                         if(session.gettype()==2):
                             #retransmit the transacion to the miners
                             session.getsocket().send(format_data(msg).encode())
@@ -214,47 +218,85 @@ class NodeBL:
         write_to_log(f"  Server   new miner : {user} connected")
         
         connected = True
-        
+
         while connected:
             
             (success,  msg) = receive_buffer(sock)
 
-            if success:
+            if success :
+
+                #if miner_session.getu()==False:
+                #    write_to_log("Not ")
+                #    raise Exception
+
+
                 # if we managed to get the message :
                 write_to_log(f"  Server    · received from miner : {user} - {msg}")    
 
-                if msg.startswith(BLOCKSENDMSG): # if miner is sending a block
-                    (suc,  bl_id) =  recieve_block(msg, "Node", self._server_socket)
+                if msg.startswith(MINEDBLOCKSENDMSG): # if miner is sending a block
+                    (suc,  bl_id) =  recieve_block(msg, "Node", sock)
                     if suc: # if recieved block successfully
                         for session in self._sessionlist:
-                            
-                            if(session.gettype==1):
-                                #retransmit the block to the clients
-                                skt=session.getsocket()
-                                send_block(bl_id, skt, "Node")
+                            #retransmit the block to all
+                            skt=session.getsocket()
+                            send_block(bl_id, skt, "Node")
+                            write_to_log(f" Server / sent the block to {session.getusername()}")
+                    else:
+                        miner_session.setu(False)
                                 
-                                
-                                write_to_log(f" Server / sent the block to the client {session.getusername()}")
-                                
-                            else:
-                                self._last_error = f"clients {session.getusername()} socket is wrong "
-                                
-                                #push the error in gui
-            
-            
+                
+
             else:
                 self._last_error = f"clients {session.getusername()} socket is wrong "
                 write_to_log(" Server / ")
                             #push the error in gui
     
     
-    def _recv_trs(s):
-        recieve_trs(s._server_socket, "Node")
     
+    def __sendupdatedchain(s, skt: socket, msg: str):
+        '''
+        updates a connected members blockchain from the block id
+        returns True if sent everything and the member saved it 
+        False if not
+        '''
+        id = msg.split(">")[1]
+
+        conn = sqlite3.connect(f"databases/Node/blockchain.db") # client/node/miner
+        cursor = conn.cursor()
+        try:
+            cursor.execute(f'''
+            SELECT block_id FROM blocks WHERE block_id > {id-1} 
+            ''')
+            id_list = cursor.fetchall() # get all the blocks needed to send
+
+            if id_list: # if valid 
+                skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
+                
+                for b_id in id_list: # send all the blocks the member is missing 
+                    send_block(b_id, skt, "Node") 
+
+                    skt.settimeout(3) # if in 3 seconds no answer end raise esception
+                    while True:
+                        (suc, msg) = receive_buffer(skt)
+                        if suc and msg==SAVEDBLOCK+b_id:
+                            break
+                        elif msg==FAILEDTOSAVEBLOCK:
+                            raise Exception
+
+                return True
+            else: # if sent if is wrong
+                skt.send(format_data(WRONGID).encode())
+                return False
+
+        except Exception as e:
+            write_to_log(" failed to update blockchain")
+            return False
+                    
+
+
     
-    
-    def _send_block(s):
-        send_block(1, s._server_socket, "Node")
+    def _send_block(s, id:int, skt:socket):
+        send_block(id, skt, "Node")
         
     def get_success(s):
         

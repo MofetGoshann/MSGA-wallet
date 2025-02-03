@@ -92,9 +92,10 @@ class ClientBL:
     def assemble_transaction(self, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bytes:
         '''gets the transaction info and assembles transaction ready to send
         (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
-        time = datetime.now().strftime(f"%d.%m.%Y ; %H:%M:%S.%f")[:-3]
-        transaction = (time ,self.__c_address, rec_address , amount, token)
-        transaction = str(transaction)
+        time = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
+        transaction = f"({str(thisblock)}, {self.__last_tr}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token})"
+        
+        thisblock = self.__lastb+2
         try:
             signature = private_key.sign_deterministic(transaction, hashfunc=sha256 ,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
@@ -102,7 +103,7 @@ class ClientBL:
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            wholetransaction = (time ,self.__c_address, rec_address , amount, token, hexedsig, hexedpub)
+            wholetransaction = f"({str(thisblock)}, {self.__last_tr}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token}, {hexedsig}, {hexedpub})"
 
             return str(wholetransaction)
 

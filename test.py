@@ -114,7 +114,5 @@ cursor.execute('''
                     ''')
 
 trans_list = cursor.fetchall()
-cursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", trans_list)
 
-print(type(trans_list[0]))
 print(str(trans_list[0]))

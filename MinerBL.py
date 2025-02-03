@@ -121,10 +121,13 @@ class Miner:
         returns true if transaction is valid and returns the transaction text
         '''
         try:
-            transmsg_full:dict = json.loads(transmsg_full)
-            trans_dict: dict = json.loads(transmsg_full["transaction"]) 
+            trans_tuple = transmsg_full.split(">")
 
-            hexedpublickey = trans_dict["public_key"]
+            transaction = trans_tuple[0]
+            sig = trans_tuple[1]
+            
+            sigtuple = ast.literal_eval(sig)
+            hexedpublickey = sigtuple[]
 
             public_key:ecdsa.VerifyingKey = ecdsa.VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
         
@@ -221,7 +224,7 @@ class Miner:
                 success, full_trans_dict = self.__verify_transaction(self.__recieved_message) # verify the transaction
                 
                 if success:
-                    
+                    self.__include_transaction()
                     
                     
                 else:
@@ -302,11 +305,9 @@ class Miner:
             ''')
 
             translist = cursor.fetchall() # list of the transactions [tuple]
-
             chaincursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
 
             merkle_root = s.build_merkle_tree(s.__lastb+1) # build the root
-
             timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
 
             chaincursor.execute(f'''
@@ -320,22 +321,19 @@ class Miner:
                 if nonce%100==0: # every 10 calculations update the time
                     timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
                 
-                strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
+                strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})" # header with no hash
 
                 hash = hashex(hashex(strheader)) # sha256 *2 the header with the nonce
 
-                if hash.startswith(diff*"0"):
+                if hash.startswith(diff*"0"): # if the hash is valid for a block
                     mining=False
                     full_block_header = f"({s.__lastb+1}, {hash},{p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
                     chaincursor.execute(f"INSERT INTO blocks VALUES {full_block_header}")
-                    return full_block_header
+                    return full_block_header # return the header with the hash
 
                 else:
-                    nonce+=1
-            
-
-
-        except Exception as e:
+                    nonce+=1 # increase the nonce
+        except Exception as e: # failure handling
             write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
             s._last_error = "Failed to mine block {s.__lastb+1}"
 

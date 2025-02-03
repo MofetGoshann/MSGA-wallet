@@ -255,7 +255,9 @@ def chain_on_start(type: str, skt:socket):
             block_id INT PRIMARY KEY NOT NULL,
             block_hash VARCHAR(64) NOT NULL,
             previous_block_hash VARCHAR(64),
+            merkle_root VARCHAR(64) NOT NULL
             timestamp DATETIME NOT NULL,
+            difficulty INT NOT NULL,
             nonce INT NOT NULL
         )
         ''')
@@ -291,12 +293,14 @@ def chain_on_start(type: str, skt:socket):
         skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())
         return lastb_id
     else:  # get the whole chain
-        skt.send(format_data(CHAINUPDATEREQUEST + f">{1}").encode())
+        skt.send(format_data(CHAINUPDATEREQUEST + f">{0}").encode())
         
         
 def hashex(data:str):
     '''returns the hash of data hexed'''
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
+
         
 
 

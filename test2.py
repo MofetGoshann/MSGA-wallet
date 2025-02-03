@@ -35,7 +35,7 @@ cursor.execute(f'''
 
 #b = list(result)
 #s = ">".join(map(str, b))
-#print(datetime.now().strftime(f"%d.%m.%Y ; %H:%M:%S.%f")[:-3])
+print(datetime.now().strftime(f"%d.%m.%Y %H:%M:%S"))
 #print(result)
 class Session: #session class
     def __init__(self, ip:str, port: str):
@@ -48,7 +48,7 @@ class Session: #session class
     def getu(s):
         return s.__updated
 s = Session("123", "22")
-print(s.getu())
+#print(s.getu())
 
 
-print(s.getu())
+#print(s.getu())

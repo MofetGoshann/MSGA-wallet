@@ -105,17 +105,16 @@ print(num.encode())
 
 l = ["q", "w", "e"]
 print(str(tuple(l)))
-
+'''
 conn = sqlite3.connect(f"databases/Miner/blockchain.db") # client/node/miner
 cursor = conn.cursor()
 
-cursor.execute(
-        SELECT * FROM transactions WHERE block_id = {1}
-                    )
+cursor.execute('''
+        SELECT * FROM transactions WHERE block_id = 1
+                    ''')
 
 trans_list = cursor.fetchall()
+cursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", trans_list)
+
 print(type(trans_list[0]))
-print(str(trans_list[0]))'''
-t = ("asd", "dsf", "gg")
-tr = repr(t)
-print(tr)
+print(str(trans_list[0]))

@@ -4,7 +4,7 @@ import ecdsa
 from ecdsa import SigningKey, NIST256p
 from ecdsa.util import sigencode_string
 from hashlib import sha256
-import datetime
+from datetime import datetime
 import threading
 import binascii
 import json
@@ -49,7 +49,7 @@ class Miner:
         self.__recieved_message = None 
         self.__user = username
         self.__lastb = None
-        
+        self.__difficulty = None
         self.__connect()
         
     
@@ -245,23 +245,25 @@ class Miner:
         # If only one transaction, the Merkle Root is its hash
         if len(transactions) == 1:
             return hashex(transactions[0])
-
+        try:
         # Hash all transactions
-        hashes = [hashex(tx) for tx in transactions]
+            hashes = [hashex(tx) for tx in transactions]
         # Build the tree until there is only one hash (the root)
-        while len(hashes) > 1:
-            # If the number of hashes is odd, duplicate the last hash
-            if len(hashes) % 2 == 1:
-                hashes.append(hashes[-1])
+            while len(hashes) > 1:
+                # If the number of hashes is odd, duplicate the last hash
+                if len(hashes) % 2 == 1:
+                    hashes.append(hashes[-1])
 
-            # Pairwise combine and hash
-            temp_hashes = []
-            for i in range(0, len(hashes), 2):
-                combined = hashes[i] + hashes[i + 1]
-                temp_hashes.append(hashex(combined))
+                # Pairwise combine and hash
+                temp_hashes = []
+                for i in range(0, len(hashes), 2):
+                    combined = hashes[i] + hashes[i + 1]
+                    temp_hashes.append(hashex(combined))
 
-            hashes = temp_hashes  # Move up to the next level
-
+                hashes = temp_hashes  # Move up to the next level
+        except Exception as e:
+            write_to_log(" MinerBL / Failed to build a merkle tree ; "+e)
+            s._last_error = "Problem in BL, failed to build a merkle tree"
         # The final hash is the Merkle Root
         return hashes[0]
     
@@ -289,7 +291,64 @@ class Miner:
             write_to_log(f" Miner / Problem with including the transactions into pending table; {e}")
             
             
-    def start_mining()
+    def start_mining(s, diff):
+        conn = sqlite3.connect(f'databases/Miner/pending.db')
+        cursor = conn.cursor()
+        conn2 = sqlite3.connect(f'databases/Miner/blockchain.db')
+        chaincursor = conn2.cursor()
+        try:
+            cursor.execute(f'''
+            SELECT * from transactions WHERE block_id={s.__lastb+1}
+            ''')
+
+            translist = cursor.fetchall() # list of the transactions [tuple]
+
+            chaincursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
+
+            merkle_root = s.build_merkle_tree(s.__lastb+1) # build the root
+
+            timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
+
+            chaincursor.execute(f'''
+            SELECT block_hash from blocks WHERE block_id={s.__lastb}
+            ''')
+            p_hash = chaincursor.fetchone() # previous hash of the nest block is the current hash
+
+            mining = True
+            nonce = 0
+            while mining:
+                if nonce%100==0: # every 10 calculations update the time
+                    timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
+                
+                strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
+
+                hash = hashex(hashex(strheader)) # sha256 *2 the header with the nonce
+
+                if hash.startswith(diff*"0"):
+                    mining=False
+                    full_block_header = f"({s.__lastb+1}, {hash},{p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
+                    chaincursor.execute(f"INSERT INTO blocks VALUES {full_block_header}")
+                    return full_block_header
+
+                else:
+                    nonce+=1
+            
+
+
+        except Exception as e:
+            write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
+            s._last_error = "Failed to mine block {s.__lastb+1}"
+
+
+
+
+
+        
+
+
+
+
+        
         
     
                         

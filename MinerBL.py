@@ -1,5 +1,6 @@
-import socket
 from protocol import *
+from Miner_protocol import *
+import socket
 import ecdsa
 from ecdsa import SigningKey, NIST256p
 from ecdsa.util import sigencode_string
@@ -115,33 +116,7 @@ class Miner:
 
             return False
     
-    def __verify_transaction(self, transmsg_full: str) -> (bool, dict):
-        '''
-        takes the full transaction message with signature transaction and public key
-        returns true if transaction is valid and returns the transaction text
-        '''
-        try:
-            trans_tuple = transmsg_full.split(">")
 
-            transaction = trans_tuple[0]
-            sig = trans_tuple[1]
-            
-            sigtuple = ast.literal_eval(sig)
-            hexedpublickey = sigtuple[]
-
-            public_key:ecdsa.VerifyingKey = ecdsa.VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
-        
-            hexedsignature = trans_dict["signature"]
-            signature: bytes = binascii.unhexlify(hexedsignature)
-        
-            is_valid = public_key.verify(signature, str(trans_dict).encode(),sha256,sigencode=sigencode_string) # verifying
-        
-            return is_valid, transmsg_full
-        
-        except Exception as e: # failure
-            write_to_log(f" Miner / failed to verify a transaction ; {e}")
-            self._last_error = "failed to verify a transaction"
-            return False, ""
         
         
     
@@ -270,26 +245,22 @@ class Miner:
         # The final hash is the Merkle Root
         return hashes[0]
     
-    def __include_transaction(s, trans):
+    def __operate_transaction(s, trans):
         conn = sqlite3.connect(f'databases/Miner/pending.db')
         cursor = conn.cursor()
         try:
-            tr_hash = hashex(trans)
-            thisblock = s.__lastb+2
-            transtuple = ast.literal_eval(trans)
-            sender = transtuple[1] # getting the sender address
+            success, msg = verify_transaction(trans) # verify transaction
+            if not success:
+                return False, msg
+
+            success, msg = calculate_balik_one(trans) # update the balance
+            if not success:
+                return False, msg
+            #include transaction in mempool
             cursor.execute(f'''
-                    SELECT tr_hash from transactions ORDER BY block_id DESC LIMIT 1 WHERE sender={sender}
+                    INSERT INTO transactions VALUES {trans}
                 ''')
-            
-            last_hash = cursor.fetchone()
-            
-            full_tr = f'({tr_hash}, {thisblock}, {last_hash}, {trans[1:]}'
-            
-            cursor.execute(f'''
-                    INSERT INTO transactions VALUES {full_tr}
-                ''')
-            
+                  
         except Exception as e:
             write_to_log(f" Miner / Problem with including the transactions into pending table; {e}")
             
@@ -336,6 +307,11 @@ class Miner:
         except Exception as e: # failure handling
             write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
             s._last_error = "Failed to mine block {s.__lastb+1}"
+
+    
+
+
+
 
 
 

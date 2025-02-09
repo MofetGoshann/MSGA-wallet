@@ -110,9 +110,9 @@ conn = sqlite3.connect(f"databases/Miner/blockchain.db") # client/node/miner
 cursor = conn.cursor()
 
 cursor.execute('''
-        SELECT * FROM transactions WHERE block_id = 1
+        SELECT block_id FROM transactions WHERE block_id = 1
                     ''')
 
-trans_list = cursor.fetchall()
+trans_list = cursor.fetchone()
 
-print(str(trans_list[0]))
+print(type(trans_list[0]))

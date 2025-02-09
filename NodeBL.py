@@ -58,7 +58,6 @@ class NodeBL:
         self._sessionlist: list= []
         self._server_socket: socket = None
         self.__server_running_flag: bool = False
-
         self._receive_callback = None
         self._mutex = threading.Lock()
 
@@ -76,6 +75,8 @@ class NodeBL:
             # Create and connect socket
             self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._server_socket.bind((ip, port))
+
+
 
             # Return on success
             return True
@@ -203,6 +204,10 @@ class NodeBL:
                     self._sessionlist.remove(clientsession) # remove the client from session list
                 
                 else:
+                    
+
+
+
                     # the msg is transaction
                     for session in self._sessionlist:
                         if(session.gettype()==2):
@@ -243,7 +248,9 @@ class NodeBL:
                             write_to_log(f" Server / sent the block to {session.getusername()}")
                     else:
                         miner_session.setu(False)
-                                
+
+                elif msg==CHAINUPDATEREQUEST:
+                    self.__sendupdatedchain(sock, msg)             
                 
 
             else:
@@ -289,7 +296,8 @@ class NodeBL:
                 return False
 
         except Exception as e:
-            write_to_log(" failed to update blockchain")
+            write_to_log(" NodeBL / failed to update blockchain")
+            s._last_error = "Failed to update blockchain"
             return False
                     
 
@@ -299,11 +307,48 @@ class NodeBL:
         send_block(id, skt, "Node")
         
     def get_success(s):
-        
         return s._success
     
     def get_last_error(s):
         return s._last_error
+    
+    def calculate_balik(s, b_id: int):
+        conn = sqlite3.connect(f"databases/Node/blockchain.db") # client/node/miner
+        cursor = conn.cursor()
+        try:
+            cursor.execute(f'''
+            SELECT sender, reciever, amount, token FROM transactions WHERE block_id={b_id}
+            ''')
+
+            transes = cursor.fetchall()
+
+            for trans in transes:
+                cursor.execute(f'''
+                UPDATE balances SET amount = amount + {trans[2]} WHERE address={trans[1]}
+                ''')
+
+                cursor.execute(f'''
+                UPDATE balances SET amount = amount - {trans[2]} WHERE address={trans[0]}
+                ''')    
+        
+            return True
+        except Exception as e:
+            write_to_log("Failed to calculate balance ; " +e)
+            s._last_error = "Failed to calculate balance"
+            return False
+
+                
+
+
+
+
+
+
+
+
+
+
+
     
 
 

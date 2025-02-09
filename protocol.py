@@ -4,9 +4,13 @@ import logging
 import socket
 from hashlib import sha256
 from hashlib import blake2s
+from ecdsa import ecdsa, VerifyingKey, NIST256p
+from ecdsa.util import sigencode_string
+import binascii
 import base64
 import sqlite3
 import time 
+import ast
 
 
     #helpinginfo
@@ -247,58 +251,110 @@ def saveblockchain(msg, typpe:str, skt:socket):
 
 
 def chain_on_start(type: str, skt:socket):
-    conn = sqlite3.connect(f'databases/{type}/blockchain.db')
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect(f'databases/{type}/blockchain.db')
+        cursor = conn.cursor()
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS blocks (
-            block_id INT PRIMARY KEY NOT NULL,
-            block_hash VARCHAR(64) NOT NULL,
-            previous_block_hash VARCHAR(64),
-            merkle_root VARCHAR(64) NOT NULL
-            timestamp DATETIME NOT NULL,
-            difficulty INT NOT NULL,
-            nonce INT NOT NULL
-        )
-        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS blocks (
+                block_id INT PRIMARY KEY NOT NULL,
+                block_hash VARCHAR(64) NOT NULL,
+                previous_block_hash VARCHAR(64),
+                merkle_root VARCHAR(64) NOT NULL
+                timestamp DATETIME NOT NULL,
+                difficulty INT NOT NULL,
+                nonce INT NOT NULL
+            )
+            ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS transactions (
-            tr_hash VARCHAR(64) NOT NULL,
-            block_id INT NOT NULL,
-            previous_tr_hash VARCHAR(64),
-            timestamp DATETIME NOTNULL,
-            sender VARCHAR(64) NOT NULL,
-            reciever TEXT NOT NULL,
-            amount REAL NOT NULL,
-            token TEXT NOT NULL
-        )
-        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                tr_hash VARCHAR(64) NOT NULL,
+                block_id INT NOT NULL,
+                nonce INT NOT NULL,
+                timestamp DATETIME NOT NULL,
+                sender VARCHAR(64) NOT NULL,
+                reciever TEXT NOT NULL,
+                amount REAL NOT NULL,
+                token TEXT NOT NULL,
+                hex_pub_key TEXT NOT NULL,
+                hex_signature TEXT NOT NULL
+            )
+            ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS balances (
-            username TEXT NOT NULL,
-            address VARCHAR(64) NOT NULL,
-            balance INT NOT NULL
-        )
-        ''')
-    
-    cursor.execute('''
-        SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
-        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS balances (
+                address VARCHAR(64) NOT NULL,
+                balance INT NOT NULL,
+                token TEXT NOT NULL,
+                nonce INT NOT NULL
+            )
+            ''')
+        
+        cursor.execute('''
+            SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
+            ''')
 
-    lastb_id= cursor.fetchone()[0] # get the last block
+        lastb_id= cursor.fetchone()[0] # get the last block
+        conn.commit()
+        conn.close()
 
-    if lastb_id: # get the chain from last block
-        skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())
-        return lastb_id
-    else:  # get the whole chain
-        skt.send(format_data(CHAINUPDATEREQUEST + f">{0}").encode())
+        if lastb_id: # get the chain from last block
+            skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())
+            return lastb_id
+        else:  # get the whole chain
+            skt.send(format_data(CHAINUPDATEREQUEST + f">{0}").encode())
+    except Exception as e:
+        write_to_log(" protocol / Failed to start chain; "+e)
+        return "Failed to start chain; "+e
         
         
 def hashex(data:str):
     '''returns the hash of data hexed'''
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
+def verify_transaction(transmsg_full: str, typpe:str): # verify of node
+
+    try:
+        if not transmsg_full.startswith("(") and not transmsg_full.endswith(")"):
+            return False, "Wrong transaction format"
+        transaction_tuple = ast.literal_eval(transmsg_full) # str to tuple
+        if not len(transaction_tuple)==9: # if wrong len
+            return False, "Wrong transaction format"
+        
+        conn = sqlite3.connect(f"databases/{typpe}/blockchain.db") # client/node/miner
+        cursor = conn.cursor()
+
+        amount_spent = transaction_tuple[6]
+        token = transaction_tuple[7]
+        cursor.execute(f'''
+        SELECT balance FROM balances WHERE address={transaction_tuple[4]} AND token={token}
+        ''')
+        balance = cursor.fetchone()[0]
+        cursor.close()
+        if not balance:
+            return False, "No account with the address"
+        if balance<amount_spent: # spending nonexistant money
+            return False, "Your account balance is lower then the amount you are trying to spend"
+        
+        hexedsignature = transaction_tuple[9]
+        hexedpublickey = transaction_tuple[8]
+
+        transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
+
+        public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
+        signature: bytes = binascii.unhexlify(hexedsignature)
+    
+        is_valid = public_key.verify(signature, str(transaction).encode(),sha256,sigencode=sigencode_string) # verifying the signature
+    
+        if is_valid:
+            return True
+        else:
+            return False, "Signature failed verification"
+    
+    except Exception as e: # failure
+        write_to_log(" protocol / Failed to verify transaction; "+e)
+        return False, "Failed to verify transaction; "+e
 
 
         

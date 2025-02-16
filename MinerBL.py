@@ -50,7 +50,8 @@ class Miner:
         self.__recieved_message = None 
         self.__user = username
         self.__lastb = None
-        self.__difficulty = None
+        self.__mining = False
+        self.__diff = 0
         self.__connect()
         
     
@@ -136,7 +137,7 @@ class Miner:
             success, message = receive_buffer(self._socket_obj)
             if not success:
                 self._last_error = "didn`t recieve a message"
-                return
+                return ""
             return message
         except Exception as e:
 
@@ -186,17 +187,29 @@ class Miner:
                 connected = False # close loop
             
             if self.__recieved_message.startswith(MINEDBLOCKSENDMSG):
-                header = self.__recieved_message.split(">")[1]
-                (suc,  bl_id) =  recieve_block(header, "Miner", self._socket_obj)
+                msg_list = self.__recieved_message.split(">")
+                header = msg_list[1]
+                diff =msg_list[2]
+                (suc,  msg) =  recieve_block(header, "Miner", self._socket_obj)
                 if suc:
-                    self.__lastb = bl_id
+                    self.__lastb =+1
+                    self.__mining = False
+                    listening_thread = threading.Thread(target=self.start_mining(), args=(diff,))
+                    listening_thread.start()
+                else:
+                    self._socket_obj.send((format_data(msg).encode()))
+                
+
+                
                 
             if self.__recieved_message.startswith(CHAINUPDATING):
+
                 saveblockchain(self.__recieved_message, "Miner", self._socket_obj)
 
 
-            else:
-                success, full_trans_dict = self.__verify_transaction(self.__recieved_message) # verify the transaction
+            if self.__recieved_message.startswith(TRANS):
+                transaction = self.__recieved_message.split(">")[1]
+                success, full_trans_dict = verify_transaction(self.__recieved_message) # verify the transaction
                 
                 if success:
                     self.__include_transaction()
@@ -210,22 +223,23 @@ class Miner:
     def _send_block(s):
         send_block(1, s._socket_obj, "Miner")
 
-    def build_merkle_tree(s, b_id:int):
-        conn = sqlite3.connect(f'databases/Miner/blockchain.db')
+    def build_merkle_tree(s):
+        conn = sqlite3.connect(f'databases/Miner/pending.db')
         cursor = conn.cursor()
         cursor.execute(f'''
-                        SELECT * FROM transactions WHERE block_id = {b_id}
+                        SELECT tr_hash FROM transactions ORDER BY block_id DESC LIMIT 1
                     ''')      
-        transactions = cursor.fetchall()
+        hashes = cursor.fetchall()
+        conn.close()
         # Base case: If no transactions are provided, return None
-        if not transactions:
-            return None
+        if len(hashes)==0:
+            return hashex("0"*64)
         # If only one transaction, the Merkle Root is its hash
-        if len(transactions) == 1:
-            return hashex(transactions[0])
+        if len(hashes) == 1:
+            return hashes[0]
         try:
         # Hash all transactions
-            hashes = [hashex(tx) for tx in transactions]
+
         # Build the tree until there is only one hash (the root)
             while len(hashes) > 1:
                 # If the number of hashes is odd, duplicate the last hash
@@ -241,7 +255,7 @@ class Miner:
                 hashes = temp_hashes  # Move up to the next level
         except Exception as e:
             write_to_log(" MinerBL / Failed to build a merkle tree ; "+e)
-            s._last_error = "Problem in BL, failed to build a merkle tree"
+            s._last_error = "Problem in BL, failed to build a merkle tree" + e
         # The final hash is the Merkle Root
         return hashes[0]
     
@@ -265,20 +279,14 @@ class Miner:
             write_to_log(f" Miner / Problem with including the transactions into pending table; {e}")
             
             
-    def start_mining(s, diff):
-        conn = sqlite3.connect(f'databases/Miner/pending.db')
-        cursor = conn.cursor()
+    def __start_mining(s):
         conn2 = sqlite3.connect(f'databases/Miner/blockchain.db')
         chaincursor = conn2.cursor()
         try:
-            cursor.execute(f'''
-            SELECT * from transactions WHERE block_id={s.__lastb+1}
-            ''')
 
-            translist = cursor.fetchall() # list of the transactions [tuple]
-            chaincursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
-
-            merkle_root = s.build_merkle_tree(s.__lastb+1) # build the root
+            # chaincursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
+            diff = s._
+            merkle_root = s.build_merkle_tree() # build the root
             timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
 
             chaincursor.execute(f'''
@@ -286,27 +294,33 @@ class Miner:
             ''')
             p_hash = chaincursor.fetchone() # previous hash of the nest block is the current hash
 
-            mining = True
+            strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, "
+            s.__mining = True
             nonce = 0
             while mining:
-                if nonce%100==0: # every 10 calculations update the time
+                if nonce%100==0: # every 100 calculations update the time
                     timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
+                    strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, "
                 
-                strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})" # header with no hash
+                header = strheader + str(nonce)+ ")" # header with no hash
 
-                hash = hashex(hashex(strheader)) # sha256 *2 the header with the nonce
+                hash = hashex(hashex(header)) # sha256 *2 the header with the nonce
 
-                if hash.startswith(diff*"0"): # if the hash is valid for a block
+                if hash.startswith(diff*"0"): # if the hash is good mine the block
                     mining=False
-                    full_block_header = f"({s.__lastb+1}, {hash},{p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
+                    full_block_header = f"({s.__lastb+1}, {hash}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
                     chaincursor.execute(f"INSERT INTO blocks VALUES {full_block_header}")
                     return full_block_header # return the header with the hash
 
                 else:
                     nonce+=1 # increase the nonce
+            return False
         except Exception as e: # failure handling
             write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
             s._last_error = "Failed to mine block {s.__lastb+1}"
+    
+    def _always_mine(s):
+
 
     
 

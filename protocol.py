@@ -36,6 +36,7 @@ SAVEDBLOCK = "Saved the whole block"
 ALREADYUPDATED = "You have the whole blockchain"
 WRONGID = "There is no blocks after this id"
 FAILEDTOSAVEBLOCK = "Could not save the block"
+TRANS = "Transaction:"
 PORT: int = 12345
 DEFAULT_IP: str = "0.0.0.0"
 BUFFER_SIZE: int = 1024
@@ -141,7 +142,7 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
         
         trans_list = cursor.fetchall()
         if trans_list: # if valid
-            skt.send(format_data(MINEDBLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
+            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t= str(tr)
@@ -197,6 +198,20 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
         conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
         cursor = conn.cursor()
         head_str = header.split(">")[1] # get the string version of the header data
+        #lil verification
+        header_tuple = ast.literal_eval(head_str)
+        cursor.execute('''
+            SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
+            ''')
+        lastb_id= cursor.fetchone()[0] # get the last block
+
+        if header_tuple[0]!=lastb_id+1:
+            skt.send(format_data("Block id is invalid").encode())
+            return False
+        head_no_hash = "(" +header_tuple[0] +str(header_tuple[2:])
+        if hashex(head_no_hash)!=header_tuple[1]:
+            skt.send(format_data("Header hash is invalid").encode())
+            return False
         #store it in the db
         cursor.execute(f'''
                 INSERT INTO blocks 
@@ -220,6 +235,7 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
             DELETE FROM transactions WHERE block_id = {id} ''')
             conn.commit()
             conn.close()
+            return False
     
     except Exception as e:
         if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
@@ -242,6 +258,7 @@ def saveblockchain(msg, typpe:str, skt:socket):
                 if suc:
                     skt.send(format_data(SAVEDBLOCK+f"{bl_id}").encode())
                     count+=1
+                    
                 else:
                     skt.send(format_data(FAILEDTOSAVEBLOCK).encode())
                     break
@@ -274,7 +291,7 @@ def chain_on_start(type: str, skt:socket):
                 nonce INT NOT NULL,
                 timestamp DATETIME NOT NULL,
                 sender VARCHAR(64) NOT NULL,
-                reciever TEXT NOT NULL,
+                reciever VARCHAR(64) NOT NULL,
                 amount REAL NOT NULL,
                 token TEXT NOT NULL,
                 hex_pub_key TEXT NOT NULL,
@@ -284,12 +301,24 @@ def chain_on_start(type: str, skt:socket):
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS balances (
+                uId INT NOT NULL
                 address VARCHAR(64) NOT NULL,
                 balance INT NOT NULL,
                 token TEXT NOT NULL,
                 nonce INT NOT NULL
             )
             ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                uId INT NOT NULL,
+                address VARCHAR(64) NOT NULL,
+                username TEXT NOT NULL,
+                pass TEXT NOT NULL
+            )
+            ''')
+        
+        
         
         cursor.execute('''
             SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1

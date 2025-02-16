@@ -280,16 +280,17 @@ class NodeBL:
                 skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
                 
                 for b_id in id_list: # send all the blocks the member is missing 
-                    send_block(b_id, skt, "Node") 
-
-                    skt.settimeout(3) # if in 3 seconds no answer end raise esception
+                    
+                    send_block(b_id, skt, conn) 
+                    '''
+                    skt.settimeout(1.5) # if in 1.5 seconds no answer end raise esception
                     while True:
                         (suc, msg) = receive_buffer(skt)
                         if suc and msg==SAVEDBLOCK+b_id:
                             break
                         elif msg==FAILEDTOSAVEBLOCK:
                             raise Exception
-
+                    '''
                 return True
             else: # if sent if is wrong
                 skt.send(format_data(WRONGID).encode())

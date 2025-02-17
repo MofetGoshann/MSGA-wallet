@@ -52,6 +52,7 @@ class Miner:
         self.__lastb = None
         self.__mining = False
         self.__diff = 0
+        self.__connected = False
         self.__connect()
         
     
@@ -151,7 +152,7 @@ class Miner:
     def __always_listen(self):
         """always recieve messages from server primarily to get kick message"""
 
-        connected = True
+        self.__connected = True
         while connected:
             self._socket_obj.settimeout(3) # set a timeout for recievedata
 
@@ -203,16 +204,16 @@ class Miner:
                 
                 
             if self.__recieved_message.startswith(CHAINUPDATING):
-
-                saveblockchain(self.__recieved_message, "Miner", self._socket_obj)
-
+                result = saveblockchain(self.__recieved_message, "Miner", self._socket_obj)
+                if not result==False:
+                    self.__lastb = result
 
             if self.__recieved_message.startswith(TRANS):
                 transaction = self.__recieved_message.split(">")[1]
-                success, full_trans_dict = verify_transaction(self.__recieved_message) # verify the transaction
+                success = verify_transaction(self.__recieved_message) # verify the transaction
                 
-                if success:
-                    self.__include_transaction()
+                if success==True:
+                    self.__operate_transaction(transaction)
                     
                     
                 else:
@@ -267,14 +268,14 @@ class Miner:
             if not success:
                 return False, msg
 
-            success, msg = calculate_balik_one(trans) # update the balance
+            success, msgg = calculate_balik_one(trans, msg[1], msg[2]) # update the balance
             if not success:
-                return False, msg
+                return False, msgg
             #include transaction in mempool
             cursor.execute(f'''
                     INSERT INTO transactions VALUES {trans}
                 ''')
-                  
+            return True
         except Exception as e:
             write_to_log(f" Miner / Problem with including the transactions into pending table; {e}")
             
@@ -282,23 +283,23 @@ class Miner:
     def __start_mining(s):
         conn2 = sqlite3.connect(f'databases/Miner/blockchain.db')
         chaincursor = conn2.cursor()
+        
         try:
 
             # chaincursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
-            diff = s._
+            diff = s.__diff
             merkle_root = s.build_merkle_tree() # build the root
-            timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
 
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
             ''')
             p_hash = chaincursor.fetchone() # previous hash of the nest block is the current hash
 
-            strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, "
             s.__mining = True
             nonce = 0
+            start_time = time.time()
             while mining:
-                if nonce%100==0: # every 100 calculations update the time
+                if nonce%100000==0: # every 100000 calculations update the time
                     timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
                     strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, "
                 
@@ -309,17 +310,37 @@ class Miner:
                 if hash.startswith(diff*"0"): # if the hash is good mine the block
                     mining=False
                     full_block_header = f"({s.__lastb+1}, {hash}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
-                    chaincursor.execute(f"INSERT INTO blocks VALUES {full_block_header}")
-                    return full_block_header # return the header with the hash
+                    mine_time = time.time() - start_time
+                    chaincursor.execute(f'''
+                    INSERT INTO blocks VALUES {full_block_header}
+                    ''')
+                    conn2.commit()
+                    return conn2, full_block_header, mine_time # return the header with the hash
 
                 else:
                     nonce+=1 # increase the nonce
+            conn2.close()
             return False
         except Exception as e: # failure handling
             write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
             s._last_error = "Failed to mine block {s.__lastb+1}"
+            conn2.close()
+            return False
     
     def _always_mine(s):
+        while s.__connected:
+            result = s.__start_mining(s) # full header
+            if result ==False:
+                return
+            # mined successfully
+
+            update_mined_block(result) # update the transactions in local chain
+            s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[1]+">"+result[2]).encode())
+            
+            
+            
+            
+            
 
 
     

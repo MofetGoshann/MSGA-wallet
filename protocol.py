@@ -256,14 +256,15 @@ def saveblockchain(msg, typpe:str, skt:socket):
                 header = header.split(">")[1]
                 (suc,  bl_id) =  recieve_block(header, typpe, skt)
                 if suc:
-                    skt.send(format_data(SAVEDBLOCK+f"{bl_id}").encode())
                     count+=1
-                    
                 else:
                     skt.send(format_data(FAILEDTOSAVEBLOCK).encode())
-                    break
+                    return False
+            
+        return bl_id
     except Exception as e:
         write_to_log(f" Miner / Failed to save block {bl_id} when updating chain")
+        return False
 
 
 

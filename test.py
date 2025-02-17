@@ -12,6 +12,7 @@ import threading
 import json
 import os
 import sqlite3
+from protocol import *
 '''
 key = SigningKey.generate(curve=NIST256p)
 public = key.get_verifying_key()
@@ -110,9 +111,30 @@ conn = sqlite3.connect(f"databases/Miner/blockchain.db") # client/node/miner
 cursor = conn.cursor()
 
 cursor.execute('''
-        SELECT block_id FROM transactions WHERE block_id = 1
+        SELECT * FROM blocks WHERE block_id = 1
                     ''')
 
 trans_list = cursor.fetchone()
+nonce = 0
+diff = 7
+strheader = str(trans_list[:-1])
+start_time = time.time()
+while True:
+    
+    if nonce>1000000000:
+        print("erer")
+        break
+    header = strheader + str(nonce)+ ")" # header with no hash
 
-print(type(trans_list[0]))
+    hash = hashex(hashex(header)) # sha256 *2 the header with the nonce
+
+    if hash.startswith(diff*"0"): # if the hash is good mine the block
+        print(hash)
+        print("Mined")
+        mining_time = time.time()
+        print(mining_time-start_time)
+        break
+    
+
+    else:
+        nonce+=1 # increase the nonce

@@ -1,20 +1,6 @@
-2025-01-11 12:12:37,433 - INFO -   Server    · starting
-2025-01-11 12:12:37,434 - INFO -   Server    · listening on 0.0.0.0
-2025-01-11 12:12:40,355 - INFO -   Protocol  · Buffer size : 5
-2025-01-11 12:12:40,355 - INFO -   Protocol  · Buffer data : qwe>1
-2025-01-11 12:12:40,355 - INFO -  \u8def Client \u8def ('127.0.0.1', 31290) connected
-2025-01-11 12:12:40,355 - INFO -   Server   new client : qwe connected
-2025-01-11 12:12:40,356 - INFO -   Server    · active connection 1
-2025-01-11 12:12:40,898 - INFO -   Protocol  · Buffer size : 170
-2025-01-11 12:12:40,898 - INFO -   Protocol  · Buffer data : Sending block...>(3, '0000000000000000000000000000000000000000000000000000000000000001', '0000000001000000000000000000000000000000000000000000000000000000', '10:33', 777)
-2025-01-11 12:12:40,898 - INFO -   Server    · received from client : qwe - Sending block...>(3, '0000000000000000000000000000000000000000000000000000000000000001', '0000000001000000000000000000000000000000000000000000000000000000', '10:33', 777)
-2025-01-11 12:12:40,899 - INFO -  protocol / couldnt save the block header,type Node; UNIQUE constraint failed: blocks.block_id, blocks.timestamp
-2025-01-11 12:12:40,900 - INFO -   Protocol  · Buffer size : 183
-2025-01-11 12:12:40,900 - INFO -   Protocol  · Buffer data : ('0000000000000000000000000000000000000000000000000000000000000011', 3, '0000000000000000000001100000000000000000000000000000000000000000', '23:19', 'asd', 'asd', 44.9, 'natalaicoin')
-2025-01-11 12:12:40,900 - INFO -   Server    · received from client : qwe - ('0000000000000000000000000000000000000000000000000000000000000011', 3, '0000000000000000000001100000000000000000000000000000000000000000', '23:19', 'asd', 'asd', 44.9, 'natalaicoin')
-2025-01-11 12:12:40,900 - INFO -   Protocol  · Buffer size : 184
-2025-01-11 12:12:40,900 - INFO -   Protocol  · Buffer data : ('0000000000000000000000000000000000000000000000000000000000000011', 3, '0000000000000000000000000000000000000000000000000000000000000011', '14:34', 'dfsdd', 'rty', 34.3, 'shevahcoin')
-2025-01-11 12:12:40,900 - INFO -   Server    · received from client : qwe - ('0000000000000000000000000000000000000000000000000000000000000011', 3, '0000000000000000000000000000000000000000000000000000000000000011', '14:34', 'dfsdd', 'rty', 34.3, 'shevahcoin')
-2025-01-11 12:12:40,900 - INFO -   Protocol  · Buffer size : 27
-2025-01-11 12:12:40,900 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-01-11 12:12:40,900 - INFO -   Server    · received from client : qwe - Stop recieving transactions
+2025-02-19 00:43:49,136 - INFO -   Server    · starting
+2025-02-19 00:43:49,142 - INFO -   Server    · listening on 0.0.0.0
+2025-02-19 00:43:53,973 - INFO -  \u8def Client GUI \u8def an error has occurred : Miner.__init__() missing 1 required positional argument: 'username'
+2025-02-19 00:44:26,113 - INFO -  \u8def Client GUI \u8def an error has occurred : Miner.__init__() missing 1 required positional argument: 'username'
+2025-02-19 00:46:45,417 - INFO -  \u8def Client GUI \u8def an error has occurred : Miner.__connect() missing 2 required positional arguments: 'ip' and 'port'
+2025-02-19 00:49:06,584 - INFO -  \u8def Miner \u8def failed to connect miner; ex:[WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение

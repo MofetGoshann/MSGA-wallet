@@ -125,7 +125,7 @@ class ClientGUI:
             messagebox.showerror("Error on Connect", error)
     
     def __send_data_event(self):
-        self._client.send_blockk()
+        self._client.send_transaction("123", "SNC", 10.0, "zxc")
 
 def main():
     n = ClientGUI()

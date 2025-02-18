@@ -18,13 +18,11 @@ class ClientBL:
         # but also the connect event
 
         self._socket_obj: socket = None
-        self.__lastb = None
         self.__user = username
         self.__c_address = c_address
         self.__recieved_message:str = None
-        self.__last_tr = None
         self._last_error = ""
-        self._balance = {}
+        self.__nonce = {'SNC': 0}
         self._recvfunc =None #recv_callback
         self._success = self.__connect(ip, port)
 
@@ -89,23 +87,22 @@ class ClientBL:
 
             return False
 
-    def assemble_transaction(self, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bytes:
+    def assemble_transaction(self, token: str, amount: float, rec_address: str): # , private_key: SigningKey
         '''gets the transaction info and assembles transaction ready to send
         (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
         time = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
-        thisblock = self.__lastb+2
-        transaction = f"({str(thisblock)}, {self.__last_tr}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token})"
+        transaction = f"({self.__nonce[token]}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token})"
         
         
         try:
+            private_key = SigningKey.generate(NIST256p)
             signature = private_key.sign_deterministic(transaction, hashfunc=sha256 ,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
             
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            hashh = hashex(transaction)
-            wholetransaction = f"({hashh}, {str(thisblock)}, {self.__last_tr}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token})>({hexedsig}, {hexedpub})"
+            wholetransaction = f"({self.__nonce[token]}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token}, {hexedsig}, {hexedpub})"
 
             return str(wholetransaction)
 
@@ -115,16 +112,17 @@ class ClientBL:
 
             return False
     
-    def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str, private_key: SigningKey) -> bool:
+    def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> bool:#, private_key: SigningKey
         """
         Send transaction to the hub and after that to the miner pool
         :return: True / False on success
         """
         try:
 
-            message: str = self.assemble_transaction(send_address, token, amount, rec_address,private_key)
-
-            self._socket_obj.send(format_data(message).encode())
+            message: str = self.assemble_transaction(send_address, token, amount, rec_address)
+            if message==False:
+                return False
+            self._socket_obj.send(format_data(TRANS+">"+message).encode())
 
             write_to_log(f" 路 Client 路 send to server : {message}")
 
@@ -213,8 +211,8 @@ class ClientBL:
                     s._last_error = f"Error in client bl the transaction sent is invalid "
                 
                 elif s.__recieved_message.startswith(MINEDBLOCKSENDMSG):
-                    header = self.__recieved_message.split(">")[1]
-                    (suc,  bl_id) =  recieve_block(header, "Miner", self._socket_obj)
+                    header = s.__recieved_message.split(">")[1]
+                    (suc,  bl_id) =  recieve_block(header, "Miner", s._socket_obj)
                     if suc:
                         s.__lastb = bl_id
                     #got a block from the miner

@@ -203,12 +203,12 @@ class NodeBL:
                     connected = False
                     self._sessionlist.remove(clientsession) # remove the client from session list
                 
-                else:
-                    
-
-
-
+                if msg.startswith(TRANS):
                     # the msg is transaction
+                    suc, ermsg = verify_transaction(msg[1])
+                    if suc==False:
+                        sock.send(format_data(ermsg).encode())
+
                     for session in self._sessionlist:
                         if(session.gettype()==2):
                             #retransmit the transacion to the miners

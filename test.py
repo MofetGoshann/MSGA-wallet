@@ -114,16 +114,20 @@ cursor.execute('''
         SELECT * FROM blocks WHERE block_id = 1
                     ''')
 
-trans_list = cursor.fetchone()
+tup = ("3",) + cursor.fetchone()
+
+print(tup)
 nonce = 0
-diff = 7
-strheader = str(trans_list[:-1])
+diff = 5
+#strheader = str(trans[:-1])
 start_time = time.time()
-while True:
+'''while True:
     
-    if nonce>1000000000:
+    if nonce>100000000:
         print("erer")
         break
+    if nonce%100000==0:
+        print(nonce)
     header = strheader + str(nonce)+ ")" # header with no hash
 
     hash = hashex(hashex(header)) # sha256 *2 the header with the nonce
@@ -138,3 +142,4 @@ while True:
 
     else:
         nonce+=1 # increase the nonce
+'''

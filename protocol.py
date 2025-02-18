@@ -36,8 +36,10 @@ SAVEDBLOCK = "Saved the whole block"
 ALREADYUPDATED = "You have the whole blockchain"
 WRONGID = "There is no blocks after this id"
 FAILEDTOSAVEBLOCK = "Could not save the block"
+GOOD_TRANS_MSG = "Transaction verified"
 TRANS = "Transaction:"
 PORT: int = 12345
+
 DEFAULT_IP: str = "0.0.0.0"
 BUFFER_SIZE: int = 1024
 HEADER_SIZE = 4
@@ -287,7 +289,6 @@ def chain_on_start(type: str, skt:socket):
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
-                tr_hash VARCHAR(64) NOT NULL,
                 block_id INT NOT NULL,
                 nonce INT NOT NULL,
                 timestamp DATETIME NOT NULL,
@@ -349,7 +350,7 @@ def verify_transaction(transmsg_full: str, typpe:str): # verify of node
         if not transmsg_full.startswith("(") and not transmsg_full.endswith(")"):
             return False, "Wrong transaction format"
         transaction_tuple = ast.literal_eval(transmsg_full) # str to tuple
-        if not len(transaction_tuple)==9: # if wrong len
+        if not len(transaction_tuple)==8: # if wrong len
             return False, "Wrong transaction format"
         
         conn = sqlite3.connect(f"databases/{typpe}/blockchain.db") # client/node/miner
@@ -378,7 +379,7 @@ def verify_transaction(transmsg_full: str, typpe:str): # verify of node
         is_valid = public_key.verify(signature, str(transaction).encode(),sha256,sigencode=sigencode_string) # verifying the signature
     
         if is_valid:
-            return True
+            return True, ""
         else:
             return False, "Signature failed verification"
     

@@ -34,7 +34,7 @@ class Block:
         pass    
 
 
-    
+tm_format = "%d.%m.%Y %H:%M:%S"
 
 
 
@@ -67,7 +67,7 @@ class Miner:
             
             # let the hub know im a miner and give the block id to update
             self._socket_obj.send(format_data(self.__user + ">2").encode())
-            self.__lastb = chain_on_start("Miner", self._socket_obj)
+            #self.__lastb = miner_on_start()
             #always recieve data from server to know if kicked
             self.__always_recieve()
             # Log the data
@@ -98,7 +98,7 @@ class Miner:
 
             # Alert the server we're closing this miner
             self.send_data(DISCONNECT_MSG)
-
+            self.__connected= False
             self._recvfunc("Disconnected.")
             # Close miner socket
             self._socket_obj.close()
@@ -153,7 +153,7 @@ class Miner:
         """always recieve messages from server primarily to get kick message"""
 
         self.__connected = True
-        while connected:
+        while self.__connected:
             self._socket_obj.settimeout(3) # set a timeout for recievedata
 
             self.__recieved_message = self.__receive_data() # update 
@@ -205,20 +205,26 @@ class Miner:
                 
             if self.__recieved_message.startswith(CHAINUPDATING):
                 result = saveblockchain(self.__recieved_message, "Miner", self._socket_obj)
-                if not result==False:
+                if result!=False:
                     self.__lastb = result
+                
+                else:
+                    self._last_error = "Cannot connect to blockchain"
 
             if self.__recieved_message.startswith(TRANS):
-                transaction = self.__recieved_message.split(">")[1]
+                print("miner got trans")
+                transplit = self.__recieved_message.split("|")
+                transaction = transplit[1]
                 res, ermsg = self.__operate_transaction(transaction)
                 
-                if res==True: # if tranasction good
-                    self._socket_obj.send(format_data(GOOD_TRANS_MSG+">"+ermsg).encode())
-                    print("Miner allgut")
+                if res==True: # if transaction good
+                    self._socket_obj.send(format_data(GOOD_TRANS_MSG+">"+transplit[2]).encode())
+                    print("trans allgut")
 
                 else:
                     # handle if faulted transaction
-                    self._socket_obj.send(format_data(ermsg[0] + ">" + ermsg[1]).encode())
+                    print("trans nogut")
+                    self._socket_obj.send(format_data(ermsg + ">" + transplit[2]).encode())
     
 
     def _send_block(s):
@@ -261,28 +267,28 @@ class Miner:
         return hashes[0]
     
     def __operate_transaction(s, trans):
-        conn = sqlite3.connect(f'databases/Miner/database.db')
-        cursor = conn.cursor()
+        conn = sqlite3.connect(f'databases/Miner/blockchain.db')
         connp = sqlite3.connect(f'databases/Miner/pending.db')
         cursorp = connp.cursor()
         try:
+
             success, msg = verify_transaction(trans, conn, connp) # verify transaction
             if not success:
                 return False, msg
-
             success, msgg = calculate_balik_one(trans, connp) # update the balance
             if not success:
                 return False, msgg
+            trans_list = trans.split("> ")
             #include transaction in mempool
             cursorp.execute(f'''
-                    INSERT INTO transactions VALUES {trans}
-                ''')
+                    INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', trans_list)
             connp.commit()
             conn.close()
             connp.close()
             return True, msgg
         except Exception as e:
-            write_to_log(f" Miner / Problem with including the transactions into pending table; {e}")
+            write_to_log(f" Miner / Problem with including the transactions into pending table; {str(e)}")
             
             
     def __start_mining(s):
@@ -305,7 +311,7 @@ class Miner:
             start_time = time.time()
             while s.__mining:
                 if nonce%100000==0: # every 100000 calculations update the time
-                    timestamp = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
+                    timestamp = datetime.now().strftime(tm_format)
                     strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, "
                 
                 header = strheader + str(nonce)+ ")" # header with no hash

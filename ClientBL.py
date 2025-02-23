@@ -22,7 +22,7 @@ class ClientBL:
         self.__c_address = c_address
         self.__recieved_message:str = None
         self._last_error = ""
-        self.__nonce = {'SNC': 0}
+        self.__nonce = {'SNC': 2}
         self._recvfunc =None #recv_callback
         self._success = self.__connect(ip, port)
 
@@ -34,7 +34,7 @@ class ClientBL:
             self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket_obj.connect((ip, port))
             # let the node know im a client. 1 is client type
-            self.__lastb = chain_on_start("Client", self._socket_obj)
+            # self.__lastb = chain_on_start("Client", self._socket_obj)
             self._socket_obj.send(format_data(self.__user + ">1").encode())
             #always recieve data from node
             self.__always_recieve()
@@ -91,20 +91,20 @@ class ClientBL:
         '''gets the transaction info and assembles transaction ready to send
         (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
         time = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
-        transaction = f"({self.__nonce[token]}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token})"
+        transaction = f"{self.__nonce[token]}> {str(time)}> {self.__c_address}> {rec_address}> {amount}> {token}"
         
         
         try:
             private_key = SigningKey.generate(NIST256p)
-            signature = private_key.sign_deterministic(transaction, hashfunc=sha256 ,sigencode=sigencode_string)
+            signature = private_key.sign_deterministic(transaction.encode(), hashfunc=sha256 ,sigencode=sigencode_string)
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
             
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            wholetransaction = f"({self.__nonce[token]}, {str(time)}, {self.__c_address}, {rec_address}, {amount}, {token}, {hexedsig}, {hexedpub})"
+            wholetransaction = f"{self.__nonce[token]}> {time}> {self.__c_address}> {rec_address}> {amount}> {token}> {hexedsig}> {hexedpub}"
 
-            return str(wholetransaction)
+            return wholetransaction
 
         except Exception as e:
             write_to_log(f" 路 Client 路 failed to assemble transaction {e}")
@@ -112,17 +112,17 @@ class ClientBL:
 
             return False
     
-    def send_transaction(self, send_address: str, token: str, amount: float, rec_address: str) -> bool:#, private_key: SigningKey
+    def send_transaction(self, token: str, amount: float, rec_address: str) -> bool:#, private_key: SigningKey
         """
         Send transaction to the hub and after that to the miner pool
         :return: True / False on success
         """
         try:
 
-            message: str = self.assemble_transaction(send_address, token, amount, rec_address)
+            message: str = self.assemble_transaction(token, amount, rec_address)
             if message==False:
                 return False
-            self._socket_obj.send(format_data(TRANS+">"+message).encode())
+            self._socket_obj.send(format_data(TRANS+"|"+message).encode())
 
             write_to_log(f" 路 Client 路 send to server : {message}")
 
@@ -177,6 +177,7 @@ class ClientBL:
             s._socket_obj.settimeout(3) # set a timeout for recievedata
 
             s.__recieved_message = s.__receive_data() # update 
+            msg = s.__recieved_message
             """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
@@ -193,8 +194,8 @@ class ClientBL:
             else: 
             #    self._recvfunc(self.__recieved_message) #insert the message into the gui
             """
-            if not s.__recieved_message==None:
-                if s.__recieved_message==KICK_MSG:
+            if not msg==None:
+                if msg==KICK_MSG:
                     discsuccess = s.disconnect() # disconnect the client from server
                     
                     if discsuccess: # confirm diconnect
@@ -206,16 +207,20 @@ class ClientBL:
 
                     connected = False # close loop
                 
-                elif s.__recieved_message==BAD_TRANS_MSG:
+                if msg==BAD_TRANS_MSG:
                     #faulty transaction
                     s._last_error = f"Error in client bl the transaction sent is invalid "
                 
-                elif s.__recieved_message.startswith(MINEDBLOCKSENDMSG):
-                    header = s.__recieved_message.split(">")[1]
-                    (suc,  bl_id) =  recieve_block(header, "Miner", s._socket_obj)
+                if msg.startswith(MINEDBLOCKSENDMSG):
+                    header = msg.split(">")[1]
+                    (suc,  bl_id) =  recieve_block(header, "Client", s._socket_obj)
                     if suc:
                         s.__lastb = bl_id
                     #got a block from the miner
+                
+                if msg==GOOD_TRANS_MSG:
+                    print("qweqweqweqweqweqwe")
+
 
     
 

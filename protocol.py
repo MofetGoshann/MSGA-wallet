@@ -5,7 +5,7 @@ import socket
 from hashlib import sha256
 from hashlib import blake2s
 from ecdsa import ecdsa, VerifyingKey, NIST256p
-from ecdsa.util import sigencode_string
+from ecdsa.util import sigencode_string, sigdecode_string
 import binascii
 import base64
 import sqlite3
@@ -226,6 +226,7 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
         if success:
             skt.send(format_data(SAVEDBLOCK + str(id)).encode())
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 
+            conn.close()
             return True # if all saved successfully
         
         else: #if all saved unsuccessfully
@@ -277,46 +278,46 @@ def chain_on_start(type: str, skt:socket):
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS blocks (
-                block_id INT PRIMARY KEY NOT NULL,
-                block_hash VARCHAR(64) NOT NULL,
-                previous_block_hash VARCHAR(64),
-                merkle_root VARCHAR(64) NOT NULL
-                timestamp DATETIME NOT NULL,
-                difficulty INT NOT NULL,
-                nonce INT NOT NULL
+            block_id INT PRIMARY KEY NOT NULL,
+            block_hash VARCHAR(64) NOT NULL,
+            previous_block_hash VARCHAR(64),
+            merkle_root VARCHAR(64) NOT NULL
+            timestamp VARCHAR(32) NOT NULL,
+            difficulty INT NOT NULL,
+            nonce INT NOT NULL
             )
             ''')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
-                block_id INT NOT NULL,
-                nonce INT NOT NULL,
-                timestamp DATETIME NOT NULL,
-                sender VARCHAR(64) NOT NULL,
-                reciever VARCHAR(64) NOT NULL,
-                amount REAL NOT NULL,
-                token TEXT NOT NULL,
-                hex_pub_key TEXT NOT NULL,
-                hex_signature TEXT NOT NULL
+            block_id INT NOT NULL,
+            nonce INT NOT NULL,
+            timestamp VARCHAR(32) NOT NULL,
+            sender VARCHAR(64) NOT NULL,
+            reciever VARCHAR(64) NOT NULL,
+            amount REAL NOT NULL,
+            token VARCHAR(12) NOT NULL,
+            hex_pub_key VARCHAR(256) NOT NULL,
+            hex_signature VARCHAR(256) NOT NULL
             )
             ''')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS balances (
-                uId INT NOT NULL
-                address VARCHAR(64) NOT NULL,
-                balance INT NOT NULL,
-                token TEXT NOT NULL,
-                nonce INT NOT NULL
+            uId INT NOT NULL
+            address VARCHAR(64) NOT NULL,
+            balance REAL NOT NULL,
+            token VARCHAR(12) NOT NULL,
+            nonce INT NOT NULL
             )
             ''')
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                uId INT NOT NULL,
-                address VARCHAR(64) NOT NULL,
-                username TEXT NOT NULL,
-                pass TEXT NOT NULL
+            uId INT NOT NULL,
+            address VARCHAR(64) NOT NULL,
+            username VARCHAR(16) NOT NULL,
+            pass VARCHAR(16) NOT NULL
             )
             ''')
         
@@ -344,48 +345,53 @@ def hashex(data:str):
     '''returns the hash of data hexed'''
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
-def verify_transaction(transmsg_full: str, typpe:str): # verify of node
-
-    try:
-        if not transmsg_full.startswith("(") and not transmsg_full.endswith(")"):
+def verify_transaction(transmsg_full: str):
+    #try:
+        if not transmsg_full.split("> "):
             return False, "Wrong transaction format"
-        transaction_tuple = ast.literal_eval(transmsg_full) # str to tuple
+        transaction_tuple: list = transmsg_full.split("> ")
+        # str to tuple
         if not len(transaction_tuple)==8: # if wrong len
             return False, "Wrong transaction format"
         
-        conn = sqlite3.connect(f"databases/{typpe}/blockchain.db") # client/node/miner
+        conn = sqlite3.connect(f'databases/Node/blockchain.db')
         cursor = conn.cursor()
-
-        amount_spent = transaction_tuple[6]
-        token = transaction_tuple[7]
+        amount_spent = float(transaction_tuple[4])
+        token = transaction_tuple[5]
         cursor.execute(f'''
-        SELECT balance FROM balances WHERE address={transaction_tuple[4]} AND token={token}
+        SELECT balance, nonce FROM balances WHERE address='{transaction_tuple[2]}' AND token='{token}'
         ''')
-        balance = cursor.fetchone()[0]
-        cursor.close()
-        if not balance:
+        result = cursor.fetchone()
+
+
+        if result==None:
             return False, "No account with the address"
+        balance = float(result[0])
+        nonce = result[1]
         if balance<amount_spent: # spending nonexistant money
             return False, "Your account balance is lower then the amount you are trying to spend"
+        if nonce>int(transaction_tuple[0]):
+            return False, "Wrong nonce"
         
-        hexedsignature = transaction_tuple[9]
-        hexedpublickey = transaction_tuple[8]
+        hexedsignature = transaction_tuple[6]
+        hexedpublickey = transaction_tuple[7]
 
-        transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
-
+        transaction: list = transaction_tuple[:-2] #transaction without the scriptsig
+        st_transaction = "> ".join(transaction)
         public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
         signature: bytes = binascii.unhexlify(hexedsignature)
     
-        is_valid = public_key.verify(signature, str(transaction).encode(),sha256,sigencode=sigencode_string) # verifying the signature
-    
+        is_valid = public_key.verify(signature, st_transaction.encode(),sha256,sigdecode=sigdecode_string) # verifying the signature
         if is_valid:
             return True, ""
         else:
             return False, "Signature failed verification"
     
-    except Exception as e: # failure
-        write_to_log(" protocol / Failed to verify transaction; "+e)
-        return False, "Failed to verify transaction; "+e
+    #except Exception as e: # failure
+    #    write_to_log(" protocol / Failed to verify transaction; "+str(e))
+    #    return False, "Failed to verify transaction; "+str(e)
+
+
 
 
         

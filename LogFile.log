@@ -1,6 +1,21 @@
-2025-02-19 00:43:49,136 - INFO -   Server    · starting
-2025-02-19 00:43:49,142 - INFO -   Server    · listening on 0.0.0.0
-2025-02-19 00:43:53,973 - INFO -  \u8def Client GUI \u8def an error has occurred : Miner.__init__() missing 1 required positional argument: 'username'
-2025-02-19 00:44:26,113 - INFO -  \u8def Client GUI \u8def an error has occurred : Miner.__init__() missing 1 required positional argument: 'username'
-2025-02-19 00:46:45,417 - INFO -  \u8def Client GUI \u8def an error has occurred : Miner.__connect() missing 2 required positional arguments: 'ip' and 'port'
-2025-02-19 00:49:06,584 - INFO -  \u8def Miner \u8def failed to connect miner; ex:[WinError 10061] Ïîäêëş÷åíèå íå óñòàíîâëåíî, ò.ê. êîíå÷íûé êîìïüşòåğ îòâåğã çàïğîñ íà ïîäêëş÷åíèå
+2025-02-23 18:45:49,996 - INFO -   Server    · starting
+2025-02-23 18:45:49,999 - INFO -   Server    · listening on 0.0.0.0
+2025-02-23 18:45:54,238 - INFO -   Protocol  · Buffer size : 5
+2025-02-23 18:45:54,238 - INFO -   Protocol  · Buffer data : asd>2
+2025-02-23 18:45:54,238 - INFO -   Server    · active connection 1
+2025-02-23 18:45:54,238 - INFO -   Server   new miner : asd connected
+2025-02-23 18:45:54,238 - INFO -  \u8def Miner \u8def ('127.0.0.1', 23460) connected
+2025-02-23 18:45:58,312 - INFO -   Protocol  · Buffer size : 8
+2025-02-23 18:45:58,312 - INFO -   Protocol  · Buffer data : imuser>1
+2025-02-23 18:45:58,312 - INFO -  \u8def Client \u8def ('127.0.0.1', 23466) connected
+2025-02-23 18:45:58,312 - INFO -   Server   new client : imuser connected
+2025-02-23 18:45:58,312 - INFO -   Server    · active connection 2
+2025-02-23 18:45:58,790 - INFO -  \u8def Client \u8def send to server : 1> 23.02.2025 18:45:58> zxc> qwe> 10.0> SNC> 71b383f0b8318c74086b3b39175a551758f5819f5ffa41c360467433a57c5806aed038c7b0047a410368d3bda0f612ada5c565fcc876c6e701f5ac04c73a9615> 036a1cdd34e0ee8b6b96ce38327f00fa3696d4284bc4757e23fc572a3b17504302
+2025-02-23 18:45:58,790 - INFO -   Protocol  · Buffer size : 254
+2025-02-23 18:45:58,791 - INFO -   Protocol  · Buffer data : Transaction:|1> 23.02.2025 18:45:58> zxc> qwe> 10.0> SNC> 71b383f0b8318c74086b3b39175a551758f5819f5ffa41c360467433a57c5806aed038c7b0047a410368d3bda0f612ada5c565fcc876c6e701f5ac04c73a9615> 036a1cdd34e0ee8b6b96ce38327f00fa3696d4284bc4757e23fc572a3b17504302
+2025-02-23 18:45:58,791 - INFO -   Server    · received from client : imuser - Transaction:|1> 23.02.2025 18:45:58> zxc> qwe> 10.0> SNC> 71b383f0b8318c74086b3b39175a551758f5819f5ffa41c360467433a57c5806aed038c7b0047a410368d3bda0f612ada5c565fcc876c6e701f5ac04c73a9615> 036a1cdd34e0ee8b6b96ce38327f00fa3696d4284bc4757e23fc572a3b17504302
+2025-02-23 18:45:58,802 - INFO -   Protocol  · Buffer size : 261
+2025-02-23 18:45:58,802 - INFO -   Protocol  · Buffer data : Transaction:|1> 23.02.2025 18:45:58> zxc> qwe> 10.0> SNC> 71b383f0b8318c74086b3b39175a551758f5819f5ffa41c360467433a57c5806aed038c7b0047a410368d3bda0f612ada5c565fcc876c6e701f5ac04c73a9615> 036a1cdd34e0ee8b6b96ce38327f00fa3696d4284bc4757e23fc572a3b17504302|imuser
+2025-02-23 18:45:58,816 - INFO -   Protocol  · Buffer size : 25
+2025-02-23 18:45:58,816 - INFO -   Protocol  · Buffer data : Error, wrong nonce>imuser
+2025-02-23 18:45:58,816 - INFO -   Server    · received from miner : asd - Error, wrong nonce>imuser

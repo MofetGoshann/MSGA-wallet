@@ -205,20 +205,24 @@ class NodeBL:
                 
                 if msg.startswith(TRANS):
                     # the msg is transaction
-                    suc, ermsg = verify_transaction(msg[1])
+                    trans = msg.split("|")[1]
+                    suc, ermsg = verify_transaction(trans)
                     if suc==False:
                         sock.send(format_data(ermsg).encode())
+                    else:
 
-                    for session in self._sessionlist:
-                        if(session.gettype()==2):
-                            #retransmit the transacion to the miners
-                            session.getsocket().send(format_data(msg).encode())
+                        for session in self._sessionlist:
+                            if(session.gettype()==2):
+                                #retransmit the transacion to the miners
+                                print("sent")
+                                session.getsocket().send(format_data(msg+"|"+user).encode())
                     
     
     def __handle_miner(self, miner_session: Session):
         
         user = miner_session.getusername()
         sock = miner_session.getsocket()
+        print(user)
 
         write_to_log(f"  Server   new miner : {user} connected")
         
@@ -250,11 +254,20 @@ class NodeBL:
                         miner_session.setu(False)
 
                 elif msg==CHAINUPDATEREQUEST:
-                    self.__sendupdatedchain(sock, msg)             
+                    self.__sendupdatedchain(sock, msg)     
+
+                if msg.startswith(GOOD_TRANS_MSG):
+                    user_to_send = msg.split(">")[1]     
+                    for session in self._sessionlist:
+                        #retransmit to the sender
+                        us=session.getusername()
+                        if(us==user_to_send):
+                            session.getsocket().send(format_data(GOOD_TRANS_MSG).encode())
+                            write_to_log(f" Server / sent confirmation to: {user_to_send}")
                 
 
             else:
-                self._last_error = f"clients {session.getusername()} socket is wrong "
+                self._last_error = f"clients {user} socket is wrong "
                 write_to_log(" Server / ")
                             #push the error in gui
     
@@ -281,7 +294,9 @@ class NodeBL:
                 
                 for b_id in id_list: # send all the blocks the member is missing 
                     
-                    send_block(b_id, skt, conn) 
+                    if send_block(b_id, skt, conn)==False:
+                        s._last_error = " NodeBL / Couldnt update blockhain"
+                        return False
                     '''
                     skt.settimeout(1.5) # if in 1.5 seconds no answer end raise esception
                     while True:

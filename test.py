@@ -2,7 +2,7 @@ from hashlib import sha256
 import hashlib
 import base64
 import ecdsa
-from ecdsa import SigningKey, NIST256p
+from ecdsa import SigningKey, NIST256p, VerifyingKey
 from ecdsa.util import sigencode_string
 import socket
 from select import select
@@ -102,32 +102,29 @@ except Exception as e:
 print(len(pubs))
 print(len(pubs + ">".encode()))
 print(num.encode())
-
-
-l = ["q", "w", "e"]
-print(str(tuple(l)))
 '''
-conn = sqlite3.connect(f"databases/Miner/blockchain.db") # client/node/miner
-cursor = conn.cursor()
 
-cursor.execute('''
-        SELECT * FROM blocks WHERE block_id = 1
-                    ''')
 
-tup = ("3",) + cursor.fetchone()
+    
 
-print(tup)
+
+
+
+
+
+'''
 nonce = 0
 diff = 5
-#strheader = str(trans[:-1])
+strheader = "(asdasd, asdasdasd, 123123123123123123123123123231, 1233232323213, asdasdasd, "
 start_time = time.time()
-'''while True:
+while True:
     
     if nonce>100000000:
         print("erer")
         break
     if nonce%100000==0:
         print(nonce)
+        print(time.time() - start_time)
     header = strheader + str(nonce)+ ")" # header with no hash
 
     hash = hashex(hashex(header)) # sha256 *2 the header with the nonce
@@ -142,4 +139,22 @@ start_time = time.time()
 
     else:
         nonce+=1 # increase the nonce
+
+
 '''
+connp = sqlite3.connect(f'databases/Miner/pending.db')
+cursorp = connp.cursor()
+
+cursorp.execute(f'''
+SELECT * FROM balances WHERE address='qwe' AND token='SNC'
+''')
+print(1)
+send_bal = cursorp.fetchone()
+print(1)
+cursorp.execute(f'''
+SELECT * FROM balances WHERE address='zxc' AND token='SNC'
+''')
+print(1)
+recv_bal = cursorp.fetchone()
+ll = ast.literal_eval(str(recv_bal))
+print(send_bal, type(ll[1]))

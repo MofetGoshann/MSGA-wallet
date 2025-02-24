@@ -17,41 +17,38 @@ from protocol import *
 
 def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
     try:
-        if not transmsg_full.startswith("(") and not transmsg_full.endswith(")"):
+        transaction_tuple: tuple = ast.literal_eval(transmsg_full)
+        # str to tuple
+        if not len(transaction_tuple)==8: # if wrong len
             return False, "Wrong transaction format"
-        transaction_tuple = ast.literal_eval(transmsg_full) # str to tuple
-        if not len(transaction_tuple)==9: # if wrong len
-            return False, "Wrong transaction format"
-
+        
         cursor = conn.cursor()
-
-        amount_spent = transaction_tuple[6]
-        token = transaction_tuple[7]
+        amount_spent = float(transaction_tuple[4])
+        token = transaction_tuple[5]
         cursor.execute(f'''
-        SELECT balance, nonce FROM balances WHERE address={transaction_tuple[4]} AND token={token}
+        SELECT balance, nonce FROM balances WHERE address='{transaction_tuple[2]}' AND token='{token}'
         ''')
         result = cursor.fetchone()
-        balance = result[0]
-        nonce = result[1]
+
 
         if result==None:
             return False, "No account with the address"
+        balance = float(result[0])
+        nonce = result[1]
         if balance<amount_spent: # spending nonexistant money
             return False, "Your account balance is lower then the amount you are trying to spend"
-        if nonce>transaction_tuple[1]:
+        if nonce>int(transaction_tuple[0]):
             return False, "Wrong nonce"
         
-        hexedsignature = transaction_tuple[9]
-        hexedpublickey = transaction_tuple[8]
+        hexedsignature = transaction_tuple[6]
+        hexedpublickey = transaction_tuple[7]
 
         transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
-
-
+        st_transaction = str(transaction)
         public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
         signature: bytes = binascii.unhexlify(hexedsignature)
     
-        is_valid = public_key.verify(signature, str(transaction).encode(),sha256,sigencode=sigencode_string) # verifying the signature
-    
+        is_valid = public_key.verify(signature, st_transaction.encode(),sha256,sigdecode=sigdecode_string) # verifying the signature
         if is_valid:
             return True, ""
         else:
@@ -74,7 +71,7 @@ def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqli
     returns true if transaction is valid or returns false and error
     '''
     try:
-        (ver, msg) = simple_verify(transmsg_full)
+        (ver, msg) = simple_verify(transmsg_full, conn)
 
         if ver==False:
             return (ver, msg)
@@ -83,46 +80,56 @@ def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqli
         cursorp = connp.cursor()
         
         transaction_tuple = ast.literal_eval(transmsg_full)
-        tr_nonce = transaction_tuple[2]
-        amount_spent = transaction_tuple[6]
-        token = transaction_tuple[7]
-
+        tr_nonce = transaction_tuple[0]
+        amount_spent = transaction_tuple[4]
+        token = transaction_tuple[5]
+        cursorp.execute(f'''
+        SELECT balance FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[3]}' AND token='{token}'
+        ''')
+        if cursorp.fetchone()==None:
+            cursor.execute(f'''
+            SELECT * FROM balances WHERE address='{transaction_tuple[3]}' AND token='{token}'
+            ''')
+            balances = cursor.fetchone()
+            if balances==None: # if the nonce wrong
+                return False , "Error, your account is not registered in the chain / wrong nonce"
+            
+            cursorp.execute(f'''
+            INSERT INTO balances VALUES {str(balances)}
+            ''')
+            connp.commit()
+        
         # prove that nonce is valid to ensure no double spending
         cursorp.execute(f'''
-        SELECT balance FROM balances WHERE {tr_nonce}=nonce AND address={transaction_tuple[4]} AND token={token}
+        SELECT balance FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[2]}' AND token='{token}'
         ''')
         nonce = cursorp.fetchone()
         if nonce==None: # no balance in the mempool
             cursor.execute(f'''
-            SELECT balance FROM balances WHERE {tr_nonce}=nonce AND address={transaction_tuple[4]} AND token={token}
+            SELECT * FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[2]}' AND token='{token}'
             ''')
-            balance = cursor.fetchone()
-            if balance==None: # if the nonce wrong
+            balances = cursor.fetchone()
+            if balances==None: # if the nonce wrong
                 return False , "Error, your account is not registered in the chain / wrong nonce"
             
-            # inserting to the mempool, its valid
-            cursor.execute(f'''
-            SELECT * FROM balances WHERE address={transaction_tuple[5]} AND token={transaction_tuple[7]}
-            ''')
-            # get the balance from the local chain
-            balances = cursorp.fetchone()
             # insert the balance of this user in this block
             cursorp.execute(f'''
             INSERT INTO balances VALUES {str(balances)}
             ''')
-            return True
+            connp.commit()
+            return True, ""
 
         else:
             cursorp.execute(f'''
-            SELECT nonce, balance FROM balances WHERE address={transaction_tuple[4]} AND token={token}
+            SELECT nonce, balance FROM balances WHERE address='{transaction_tuple[2]}' AND token='{token}'
             ''')
-            nonce, pend_balance = cursor.fetchone()
+            nonce, pend_balance = cursorp.fetchone()
 
             if pend_balance<amount_spent: # if trying to spend more then having
                 return False, "Error, your account balance is lower then the amount you are trying to spend"
             
-            if not nonce==transaction_tuple[1]:
-                return False, "Error, your account balance is lower then the amount you are trying to spend"
+            if not nonce==transaction_tuple[0]:
+                return False, "Error, wrong nonce"
             
             return True, "" # if didnt fail then verified
     
@@ -136,29 +143,34 @@ def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in t
         trans_tuple = ast.literal_eval(trans)
         #get the before addresses for handling failure
         # trans ()
+        amount_spent = trans_tuple[4]
+        token = trans_tuple[5]
+        sender = trans_tuple[2]
+        recv = trans_tuple[3]
+        
         cursorp.execute(f'''
-        SELECT balance FROM balances WHERE address={trans_tuple[5]} AND token={trans_tuple[7]}
+        SELECT balance FROM balances WHERE address='{sender}' AND token='{token}'
         ''')
         send_bal = cursorp.fetchone()[0]
         cursorp.execute(f'''
-        SELECT balance FROM balances WHERE address={trans_tuple[4]} AND token={trans_tuple[7]}
+        SELECT balance FROM balances WHERE address='{recv}' AND token='{token}'
         ''')
         recv_bal = cursorp.fetchone()[0]
         # update senders 
         cursorp.execute(f'''
-        UPDATE balances SET balance = balance - {trans_tuple[6]} WHERE address={trans_tuple[4]} AND token={trans_tuple[7]}
+        UPDATE balances SET balance = balance - {amount_spent} WHERE address='{sender}' AND token='{token}'
         ''') 
         # update the recievers
         cursorp.execute(f'''
-        UPDATE balances SET balance = balance + {trans_tuple[6]} WHERE address={trans_tuple[5]} AND token={trans_tuple[7]}
+        UPDATE balances SET balance = balance + {amount_spent} WHERE address='{recv}' AND token='{token}'
         ''')
         return True, trans_tuple[4] # if no errors return the sender address
     except Exception as e: # reset the addreses and return error
         cursorp.execute(f'''
-        UPDATE balances SET balance = {recv_bal} WHERE address={trans_tuple[4]} AND token={trans_tuple[7]}
+        UPDATE balances SET balance = {recv_bal} WHERE address='{recv}' AND token='{token}'
         ''') 
         cursorp.execute(f'''
-        UPDATE balances SET balance = {send_bal} WHERE address={trans_tuple[5]} AND token={trans_tuple[7]}
+        UPDATE balances SET balance = {send_bal} WHERE address='{sender}' AND token='{token}'
         ''') 
         write_to_log(" MinerP / Failed to update balance after transaction ; "+e)
         return False, trans_tuple[4], " Error, failed to update balance after transaction ; "+e

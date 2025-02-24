@@ -142,19 +142,43 @@ while True:
 
 
 '''
-connp = sqlite3.connect(f'databases/Miner/pending.db')
+connp = sqlite3.connect(f'databases/Node/pending.db')
 cursorp = connp.cursor()
+conn= sqlite3.connect(f'databases/Node/blockchain.db')
+cursor = conn.cursor()
 
-cursorp.execute(f'''
-SELECT * FROM balances WHERE address='qwe' AND token='SNC'
-''')
-print(1)
-send_bal = cursorp.fetchone()
-print(1)
-cursorp.execute(f'''
-SELECT * FROM balances WHERE address='zxc' AND token='SNC'
-''')
-print(1)
-recv_bal = cursorp.fetchone()
-ll = ast.literal_eval(str(recv_bal))
-print(send_bal, type(ll[1]))
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS blocks (
+    block_id INT PRIMARY KEY NOT NULL,
+    block_hash VARCHAR(64) NOT NULL,
+    previous_block_hash VARCHAR(64),
+    merkle_root VARCHAR(64) NOT NULL,
+    timestamp VARCHAR(32) NOT NULL,
+    difficulty INT NOT NULL,
+    nonce INT NOT NULL
+    )
+    ''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS transactions (
+    block_id INT NOT NULL,
+    nonce INT NOT NULL,
+    timestamp VARCHAR(32) NOT NULL,
+    sender VARCHAR(64) NOT NULL,
+    reciever VARCHAR(64) NOT NULL,
+    amount REAL NOT NULL,
+    token VARCHAR(12) NOT NULL,
+    hex_pub_key VARCHAR(256) NOT NULL,
+    hex_signature VARCHAR(256) NOT NULL
+    )
+    ''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS balances (
+    uId INT NOT NULL,
+    address VARCHAR(64) NOT NULL,
+    balance REAL NOT NULL,
+    token VARCHAR(12) NOT NULL,
+    nonce INT NOT NULL
+    )
+    ''')

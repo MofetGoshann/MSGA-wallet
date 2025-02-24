@@ -347,9 +347,7 @@ def hashex(data:str):
 
 def verify_transaction(transmsg_full: str):
     #try:
-        if not transmsg_full.split("> "):
-            return False, "Wrong transaction format"
-        transaction_tuple: list = transmsg_full.split("> ")
+        transaction_tuple: tuple = ast.literal_eval(transmsg_full)
         # str to tuple
         if not len(transaction_tuple)==8: # if wrong len
             return False, "Wrong transaction format"
@@ -376,8 +374,8 @@ def verify_transaction(transmsg_full: str):
         hexedsignature = transaction_tuple[6]
         hexedpublickey = transaction_tuple[7]
 
-        transaction: list = transaction_tuple[:-2] #transaction without the scriptsig
-        st_transaction = "> ".join(transaction)
+        transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
+        st_transaction = str(transaction)
         public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
         signature: bytes = binascii.unhexlify(hexedsignature)
     

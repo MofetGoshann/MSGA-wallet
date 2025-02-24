@@ -22,7 +22,7 @@ class ClientBL:
         self.__c_address = c_address
         self.__recieved_message:str = None
         self._last_error = ""
-        self.__nonce = {'SNC': 2}
+        self.__nonce = {'SNC': 1}
         self._recvfunc =None #recv_callback
         self._success = self.__connect(ip, port)
 
@@ -91,7 +91,7 @@ class ClientBL:
         '''gets the transaction info and assembles transaction ready to send
         (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
         time = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
-        transaction = f"{self.__nonce[token]}> {str(time)}> {self.__c_address}> {rec_address}> {amount}> {token}"
+        transaction = f"({self.__nonce[token]}, '{str(time)}', '{self.__c_address}', '{rec_address}', {amount}, '{token}')"
         
         
         try:
@@ -102,7 +102,7 @@ class ClientBL:
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            wholetransaction = f"{self.__nonce[token]}> {time}> {self.__c_address}> {rec_address}> {amount}> {token}> {hexedsig}> {hexedpub}"
+            wholetransaction = f"({self.__nonce[token]}, '{time}', '{self.__c_address}', '{rec_address}', {amount}, '{token}', '{hexedsig}', '{hexedpub}')"
 
             return wholetransaction
 

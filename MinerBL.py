@@ -275,20 +275,25 @@ class Miner:
             success, msg = verify_transaction(trans, conn, connp) # verify transaction
             if not success:
                 return False, msg
+
             success, msgg = calculate_balik_one(trans, connp) # update the balance
             if not success:
                 return False, msgg
-            trans_list = trans.split("> ")
+            
+            trans_list = ast.literal_eval(trans)
             #include transaction in mempool
             cursorp.execute(f'''
                     INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''', trans_list)
+            cursorp.execute(f'''
+            UPDATE balances SET nonce = nonce + 1 WHERE address='{trans_list[2]}' AND token='{trans_list[5]}'
+            ''')
             connp.commit()
             conn.close()
             connp.close()
             return True, msgg
         except Exception as e:
-            write_to_log(f" Miner / Problem with including the transactions into pending table; {str(e)}")
+            write_to_log(f" Miner / Problem with including the transactions into pending table; {msg or msgg}")
             
             
     def __start_mining(s):

@@ -208,6 +208,7 @@ class NodeBL:
                     trans = msg.split("|")[1]
                     suc, ermsg = verify_transaction(trans)
                     if suc==False:
+                        print("qweqwe")
                         sock.send(format_data(ermsg).encode())
                     else:
 

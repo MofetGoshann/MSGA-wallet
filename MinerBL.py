@@ -157,6 +157,7 @@ class Miner:
             self._socket_obj.settimeout(3) # set a timeout for recievedata
 
             self.__recieved_message = self.__receive_data() # update 
+            msg = self.__recieved_message
                 
             """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
@@ -175,7 +176,7 @@ class Miner:
             #    self._recvfunc(self.__recieved_message) #insert the message into the gui
             """
 
-            if self.__recieved_message==KICK_MSG:
+            if msg==KICK_MSG:
                 discsuccess = self.disconnect() # disconnect the client from server
                 
                 if discsuccess: # confirm diconnect
@@ -187,7 +188,7 @@ class Miner:
 
                 connected = False # close loop
             
-            if self.__recieved_message.startswith(MINEDBLOCKSENDMSG):
+            if msg.startswith(MINEDBLOCKSENDMSG):
                 msg_list = self.__recieved_message.split(">")
                 header = msg_list[1]
                 diff =msg_list[2]
@@ -200,10 +201,7 @@ class Miner:
                 else:
                     self._socket_obj.send((format_data(msg).encode()))
                 
-
-                
-                
-            if self.__recieved_message.startswith(CHAINUPDATING):
+            if msg.startswith(CHAINUPDATING):
                 result = saveblockchain(self.__recieved_message, "Miner", self._socket_obj)
                 if result!=False:
                     self.__lastb = result
@@ -211,7 +209,7 @@ class Miner:
                 else:
                     self._last_error = "Cannot connect to blockchain"
 
-            if self.__recieved_message.startswith(TRANS):
+            if msg.startswith(TRANS):
                 print("miner got trans")
                 transplit = self.__recieved_message.split("|")
                 transaction = transplit[1]
@@ -225,6 +223,11 @@ class Miner:
                     # handle if faulted transaction
                     print("trans nogut")
                     self._socket_obj.send(format_data(ermsg + ">" + transplit[2]).encode())
+            
+            if msg==SAVEDBLOCK:
+
+            
+
     
 
     def _send_block(s):
@@ -302,14 +305,13 @@ class Miner:
         
         try:
 
-            # chaincursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
             diff = s.__diff
             merkle_root = s.build_merkle_tree() # build the root
 
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
             ''')
-            p_hash = chaincursor.fetchone() # previous hash of the nest block is the current hash
+            p_hash = chaincursor.fetchone()[0] # previous hash of the next block
 
             s.__mining = True
             nonce = 0
@@ -325,33 +327,43 @@ class Miner:
 
                 if hash.startswith(diff*"0"): # if the hash is good mine the block
                     # mining=False
-                    full_block_header = f"({s.__lastb+1}, {hash}, {p_hash}, {merkle_root}, {timestamp}, {diff}, {nonce})"
+                    full_block_header = f"({s.__lastb+1}, '{hash}', '{p_hash}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
                     mine_time = time.time() - start_time
-                    chaincursor.execute(f'''
-                    INSERT INTO blocks VALUES {full_block_header}
-                    ''')
-                    conn2.commit()
+
                     return conn2, full_block_header, mine_time # return the header with the hash
 
                 else:
                     nonce+=1 # increase the nonce
             conn2.close()
-            return False
+            return False, "Not mined fast enough"
         except Exception as e: # failure handling
             write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
-            s._last_error = "Failed to mine block {s.__lastb+1}"
+            s._last_error = f"Failed to mine block {s.__lastb+1}"
             conn2.close()
-            return False
+            return False,f"{e}"
     
     def _always_mine(s):
         while s.__connected:
             result = s.__start_mining(s) # conn, header, time
-            if result ==False: # if block came earlier
-                pass
+            if result[0]==False: # if block came earlier
+                ermsg = result[1]
             # mined successfully
             else:
-                update_mined_block(result[0],result[1]) # update the transactions in local chain
                 s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[1]+">"+result[2]).encode()) # broadcast to everyone
+                #stall till got confirmation
+                if send_mined==True:
+                    start_time = time.time()
+                    while time.time() - start_time < 3:
+                        if s.__recieved_message.startswith(SAVEDBLOCK):
+                            s.__diff = s.__recieved_message.split(">")[1]
+                            break
+                        time.sleep(0.1)
+                    
+                    update_mined_block(result[1], s._socket_obj, ) # update the transactions in local chain
+
+                
+
+                
             
             
             

@@ -60,7 +60,7 @@ class NodeBL:
         self.__server_running_flag: bool = False
         self._receive_callback = None
         self._mutex = threading.Lock()
-
+        self._diff = 0
         with open('LogFile.log', 'w'):
             pass
 
@@ -246,6 +246,7 @@ class NodeBL:
                 if msg.startswith(MINEDBLOCKSENDMSG): # if miner is sending a block
                     (suc,  bl_id) =  recieve_block(msg, "Node", sock)
                     if suc: # if recieved block successfully
+                        self.calculate_diff(msg[])
                         for session in self._sessionlist:
                             #retransmit the block to all
                             skt=session.getsocket()
@@ -341,7 +342,7 @@ class NodeBL:
 
             for trans in transes:
                 cursor.execute(f'''
-                UPDATE balances SET amount = amount + {trans[2]} WHERE address={trans[1]}
+                UPDATE balances SET amount = amount + {trans[2]} WHERE address={trans[1]} AND 
                 ''')
 
                 cursor.execute(f'''
@@ -354,6 +355,15 @@ class NodeBL:
             s._last_error = "Failed to calculate balance"
             return False
 
+    def calculate_diff(s, m_time):
+        if m_time>300:
+            s._diff-=2
+        
+        if m_time>90:
+            s._diff-=1
+        
+        if m_time<40:
+            s._diff+=1
                 
 
 

@@ -158,7 +158,7 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
             write_to_log(f" protocol / failed to send a block with index {blockid}")
             return False
 
-def recieve_trs(skt: socket, typpe:str)-> (bool, int):
+def recieve_trs(skt: socket, typpe:str, conn: sqlite3.Connection):
     '''
     recieves a blocks transactions
     returns true if all are saved 
@@ -167,7 +167,6 @@ def recieve_trs(skt: socket, typpe:str)-> (bool, int):
     conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
     cursor = conn.cursor()
 
-    
     recieving =True
     try:
         skt.settimeout(3) # set timeout and if no data is sent in this time will raise exception to not make endless loop
@@ -187,7 +186,7 @@ def recieve_trs(skt: socket, typpe:str)-> (bool, int):
         return True
     except Exception as e:
         #handle failure
-        write_to_log(f" protocol / error in saving/recieving the transactions of the block ; exception: {e}")
+        write_to_log(f" protocol / error in saving/recieving the transactions of the block ; {e}")
         return False
 
 def recieve_block(header:str, typpe:str, skt:socket)->bool:
@@ -199,21 +198,26 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
         #conncet to the database
         conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
         cursor = conn.cursor()
-        head_str = header.split(">")[1] # get the string version of the header data
-        #lil verification
-        header_tuple = ast.literal_eval(head_str)
-        cursor.execute('''
-            SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
-            ''')
-        lastb_id= cursor.fetchone()[0] # get the last block
 
-        if header_tuple[0]!=lastb_id+1:
+        head_str = header.split(">")[1] # get the string version of the header data
+        header_tuple  = ast.literal_eval(head_str)
+        id = header_tuple[0] 
+
+        # verify the block
+        cursor.execute('''
+            SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
+            ''')
+        lastb_id, prev_hash = cursor.fetchone() # get the last block
+        
+        if id!=lastb_id+1: # check the block_id
             skt.send(format_data("Block id is invalid").encode())
             return False
-        head_no_hash = "(" +header_tuple[0] +str(header_tuple[2:])
-        if hashex(head_no_hash)!=header_tuple[1]:
+        head_no_hash = "(" +id +str(header_tuple[2:])[1:]
+        if hashex(head_no_hash)!=header_tuple[1] and header_tuple[2]!=prev_hash: # check the hash
             skt.send(format_data("Header hash is invalid").encode())
             return False
+        
+        
         #store it in the db
         cursor.execute(f'''
                 INSERT INTO blocks 
@@ -221,10 +225,9 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
                 ''')
         conn.commit()
 
-        id = head_str[0] 
-        success =  recieve_trs(skt, typpe) # store the transactions of the block
+        success =  recieve_trs(skt, typpe, conn) # store the transactions of the block
         if success:
-            skt.send(format_data(SAVEDBLOCK + str(id)).encode())
+            skt.send(format_data(SAVEDBLOCK).encode())
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 
             conn.close()
             return True # if all saved successfully

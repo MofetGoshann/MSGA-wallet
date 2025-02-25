@@ -144,41 +144,11 @@ while True:
 '''
 connp = sqlite3.connect(f'databases/Node/pending.db')
 cursorp = connp.cursor()
-conn= sqlite3.connect(f'databases/Node/blockchain.db')
+conn= sqlite3.connect(f'databases/Client/blockchain.db')
 cursor = conn.cursor()
 
 cursor.execute('''
-    CREATE TABLE IF NOT EXISTS blocks (
-    block_id INT PRIMARY KEY NOT NULL,
-    block_hash VARCHAR(64) NOT NULL,
-    previous_block_hash VARCHAR(64),
-    merkle_root VARCHAR(64) NOT NULL,
-    timestamp VARCHAR(32) NOT NULL,
-    difficulty INT NOT NULL,
-    nonce INT NOT NULL
-    )
+    SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
     ''')
-
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS transactions (
-    block_id INT NOT NULL,
-    nonce INT NOT NULL,
-    timestamp VARCHAR(32) NOT NULL,
-    sender VARCHAR(64) NOT NULL,
-    reciever VARCHAR(64) NOT NULL,
-    amount REAL NOT NULL,
-    token VARCHAR(12) NOT NULL,
-    hex_pub_key VARCHAR(256) NOT NULL,
-    hex_signature VARCHAR(256) NOT NULL
-    )
-    ''')
-
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS balances (
-    uId INT NOT NULL,
-    address VARCHAR(64) NOT NULL,
-    balance REAL NOT NULL,
-    token VARCHAR(12) NOT NULL,
-    nonce INT NOT NULL
-    )
-    ''')
+lastb_id, prev_hash = cursor.fetchone() # get the last block
+print(lastb_id, prev_hash)

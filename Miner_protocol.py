@@ -86,7 +86,7 @@ def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqli
         cursorp.execute(f'''
         SELECT balance FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[3]}' AND token='{token}'
         ''')
-        if cursorp.fetchone()==None:
+        if cursorp.fetchone()==None: # update the recvs balance
             cursor.execute(f'''
             SELECT * FROM balances WHERE address='{transaction_tuple[3]}' AND token='{token}'
             ''')
@@ -202,7 +202,36 @@ def update_mined_block(conn:sqlite3.Connection, block_header:str):
     connp.commit()
     connp.close()
 
+def send_mined(header: str, skt :socket, conn) -> bool:
+    '''
+    sends a mined blocks transactions
+    returns true if sent all without problems
+    false if failed to send
+    '''
+    cursor:sqlite3.Cursor = conn.cursor()
+    #getting the block header
+    try:
+        b_id = ast.literal_eval(header)[0]
+        cursor.execute('''
+        SELECT * FROM transactions ORDER BY block_id DESC 
+        ''')
+        trans_list = cursor.fetchall()
+        if not trans_list==None: # if valid
+            for tr in trans_list: # sending all the transactions
+                #tr in tuple type
+                t = str(tr)
+                skt.send(format_data(t).encode())
+            skt.send(format_data(BLOCKSTOPMSG).encode())
 
+            return True
+            
+        else:
+            #the block id is false
+            write_to_log(f" protocol / failed to send a block")
+            return False, f"Failed to send a block, wrong header"
+    except Exception as e:
+            write_to_log(f" protocol / Failed to send a block; {e}")
+            return False, f"Failed to send a block; {e}"
 
 
 

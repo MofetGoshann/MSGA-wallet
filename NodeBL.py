@@ -1,6 +1,7 @@
 from select import select
 import threading
 from protocol import *
+from Node_protocol import *
 class Session: #session class
     def __init__(self, ip:str, port: str, sock: socket):
         self.__type = None
@@ -56,52 +57,54 @@ class NodeBL:
         self.__ip: str = ip
         
         self._sessionlist: list= []
-        self._server_socket: socket = None
-        self.__server_running_flag: bool = False
+        self._Node_socket: socket = None
+        self.__Node_running_flag: bool = False
         self._receive_callback = None
         self._mutex = threading.Lock()
         self._diff = 0
+        self.__lastb = 0
+        self.__timesum = 0
+        self._conn = sqlite3.connect(f'databases/Node/blockchain.db')
         with open('LogFile.log', 'w'):
             pass
 
         self._last_error = ""
-        self._success = self.__start_server(ip, port)
+        self._success = self.__start_Node(ip, port)
         
-    def __start_server(self, ip: str, port: int) -> bool:
+    def __start_Node(self, ip: str, port: int) -> bool:
 
-        write_to_log("  Server    · starting")
+        write_to_log("  Node    · starting")
 
         try:
             # Create and connect socket
-            self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._server_socket.bind((ip, port))
+            self._Node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._Node_socket.bind((ip, port))
 
-
-
+            self.Node_process()
             # Return on success
             return True
 
         except Exception as e:
 
             # Handle failure
-            self._server_socket = None
-            write_to_log(f"  Server    · failed to start up sever : {e}")
+            self._Node_socket = None
+            write_to_log(f"  Node    · failed to start up sever : {e}")
 
-            self._last_error = f"An error occurred in server bl [start_server function]\nError : {e}"
+            self._last_error = f"An error occurred in Node bl [start_Node function]\nError : {e}"
 
             return False
     
     
-    def server_process(self) -> bool:
+    def Node_process(self) -> bool:
 
         try:
-            self.__server_running_flag = True
+            self.__Node_running_flag = True
 
-            self._server_socket.listen()  # listen for clients
+            self._Node_socket.listen()  # listen for clients
 
-            write_to_log(f"  Server    · listening on {self.__ip}")
+            write_to_log(f"  Node    · listening on {self.__ip}")
 
-            while self.__server_running_flag:
+            while self.__Node_running_flag:
 
                 # Use time_out function for .accept() to close thread on no need
                 connected_socket, client_addr = self.__time_accept(0.3)
@@ -125,23 +128,23 @@ class NodeBL:
 
                     
 
-                    write_to_log(f"  Server    · active connection {threading.active_count() - 2}")
+                    write_to_log(f"  Node    · active connection {threading.active_count() - 2}")
 
-            # Close server socket on server end
-            self._server_socket.close()
-            write_to_log("  Server    · closed")
+            # Close Node socket on Node end
+            self._Node_socket.close()
+            write_to_log("  Node    · closed")
 
             # Everything went without any problems
-            self._server_socket = None
+            self._Node_socket = None
 
             return True
 
         except Exception as e:
 
             # Handle failure
-            write_to_log(f"  Server    · failed to handle a message; {e}")
+            write_to_log(f"  Node    · failed to handle a message; {e}")
 
-            self._last_error = f"An error occurred in server bl [server_process function]\nError : {e}"
+            self._last_error = f"An error occurred in Node bl [Node_process function]\nError : {e}"
 
             return False
     
@@ -150,12 +153,12 @@ class NodeBL:
     
 
         try:
-            self._server_socket.settimeout(time)
+            self._Node_socket.settimeout(time)
 
-            ready, _, _ = select([self._server_socket], [], [], time)
+            ready, _, _ = select([self._Node_socket], [], [], time)
 
             if ready:
-                return self._server_socket.accept()
+                return self._Node_socket.accept()
 
             return None, None
         except Exception as e:
@@ -167,9 +170,10 @@ class NodeBL:
         
         user = clientsession.getusername()
         sock = clientsession.getsocket()
+        conn = sqlite3.connect(f'databases/Node/blockchain.db')
 
         # This code run in separate for every client
-        write_to_log(f"  Server   new client : {user} connected")
+        write_to_log(f"  Node   new client : {user} connected")
         
 
         #if self._clientstablecallback is not None: # insert client to gui table
@@ -183,7 +187,7 @@ class NodeBL:
 
             if success:
                 # if we managed to get the message :
-                write_to_log(f"  Server    · received from client : {user} - {msg}")
+                write_to_log(f"  Node    · received from client : {user} - {msg}")
 
                 #self._mutex.acquire()
                 #try:
@@ -194,7 +198,7 @@ class NodeBL:
                 #            self._receive_callback(f"{user} - LOGIN > Username, Password")
 
                 #except Exception as e:
-                #    write_to_log(f"  Server    · some error occurred : {e}")
+                #    write_to_log(f"  Node    · some error occurred : {e}")
                 #finally:
                 #    self._mutex.release()
                     
@@ -206,9 +210,8 @@ class NodeBL:
                 if msg.startswith(TRANS):
                     # the msg is transaction
                     trans = msg.split("|")[1]
-                    suc, ermsg = verify_transaction(trans)
+                    suc, ermsg = verify_transaction(trans, conn)
                     if suc==False:
-                        print("qweqwe")
                         sock.send(format_data(ermsg).encode())
                     else:
 
@@ -223,14 +226,15 @@ class NodeBL:
         
         user = miner_session.getusername()
         sock = miner_session.getsocket()
-        print(user)
+        conn = sqlite3.connect(f'databases/Node/blockchain.db')
 
-        write_to_log(f"  Server   new miner : {user} connected")
+
+        write_to_log(f"  Node   new miner : {user} connected")
         
         connected = True
 
         while connected:
-            
+            time.sleep(0.05)
             (success,  msg) = receive_buffer(sock)
 
             if success :
@@ -241,63 +245,100 @@ class NodeBL:
 
 
                 # if we managed to get the message :
-                write_to_log(f"  Server    · received from miner : {user} - {msg}")    
+                write_to_log(f" Node / received from miner : {user} - {msg}")    
 
                 if msg.startswith(MINEDBLOCKSENDMSG): # if miner is sending a block
-                    (suc,  bl_id) =  recieve_block(msg, "Node", sock)
+                    res = msg.split(">") # minedblocksend, header, time
+
+                    (suc,  bl_id) =  recieve_block(res[1], conn, sock)
                     if suc: # if recieved block successfully
-                        self.calculate_diff(msg[])
+                        self.__timesum+=float(res[2])
+
+                        if bl_id%5==0: # adjust the difficulty
+                            avg = self.__timesum/5
+                            self.calculate_diff(avg)
+                            self.__timesum = 0
+
+                        self.__lastb =+ 1
+                        self.calculate_balik(self.__lastb, conn)
+                        
+                        sock.send(format_data(SAVEDBLOCK + ">" + str(self._diff)).encode())
+
                         for session in self._sessionlist:
                             #retransmit the block to all
                             skt=session.getsocket()
-                            send_block(bl_id, skt, "Node")
-                            write_to_log(f" Server / sent the block to {session.getusername()}")
+                            if session.gettype()==2 and session.getuser()!=user: # to the miners
+                                send_to_miner(msg, self._diff,sock, conn)
+
+                            else: # to clients
+                                send_block(bl_id, sock, conn)
+                            
+                            write_to_log(f" Node / sent the block to {session.getusername()}")
                     else:
-                        miner_session.setu(False)
+                        write_to_log(f' Node / Couldnt recieve block from {user}')
 
-                elif msg==CHAINUPDATEREQUEST:
-                    self.__sendupdatedchain(sock, msg)     
+                elif msg.startswith(CHAINUPDATEREQUEST):
+                    self.__sendupdatedchain(sock, msg, conn)     
 
-                if msg.startswith(GOOD_TRANS_MSG):
-                    user_to_send = msg.split(">")[1]     
+                if msg.startswith(GOOD_TRANS_MSG): # send the confirmation to the client(sender)
+                    user_to_send = msg.split(">")[1]    
+
                     for session in self._sessionlist:
                         #retransmit to the sender
                         us=session.getusername()
                         if(us==user_to_send):
                             session.getsocket().send(format_data(GOOD_TRANS_MSG).encode())
-                            write_to_log(f" Server / sent confirmation to: {user_to_send}")
+                            write_to_log(f" Node / sent confirmation to: {user_to_send}")
                 
 
             else:
-                self._last_error = f"clients {user} socket is wrong "
-                write_to_log(" Server / ")
+                self._last_error = f"miners {user} socket is wrong "
+                write_to_log(" Node / miners {user} socket is wrong")
                             #push the error in gui
     
     
-    
-    def __sendupdatedchain(s, skt: socket, msg: str):
+    def __sendupdatedchain(s, skt: socket, msg: str, conn):
         '''
         updates a connected members blockchain from the block id
         returns True if sent everything and the member saved it 
         False if not
         '''
+        
         id = msg.split(">")[1]
-
-        conn = sqlite3.connect(f"databases/Node/blockchain.db") # client/node/miner
         cursor = conn.cursor()
+        print(2)
         try:
             cursor.execute(f'''
-            SELECT block_id FROM blocks WHERE block_id > {id-1} 
+            SELECT block_id FROM blocks WHERE block_id > {int(id)-1} 
             ''')
+            print(2)
             id_list = cursor.fetchall() # get all the blocks needed to send
-
+            print(2)
             if id_list: # if valid 
+
+                if len(id_list)==1: # if the senders last block is the actual last block send confirmation
+                    if int(id)==id_list[0][0]: # if last block the same
+                        skt.send(format_data("UPDATED" + ">" + id).encode())
+                        return True
+                    
+                    # if its the only block
+                    skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
+
+                    if send_block(id_list[0][0], skt, conn)==False:  # send the only block
+                        s._last_error = " NodeBL / Couldnt update blockhain"
+                        print("badbad")
+                        return False
+                    skt.send(format_data("UPDATED" + ">" + str(id_list[0][0])).encode())
+                    return True
+                
+                id_list = id_list[1:]
                 skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
                 
                 for b_id in id_list: # send all the blocks the member is missing 
                     
                     if send_block(b_id, skt, conn)==False:
                         s._last_error = " NodeBL / Couldnt update blockhain"
+                        print("badbad")
                         return False
                     '''
                     skt.settimeout(1.5) # if in 1.5 seconds no answer end raise esception
@@ -308,14 +349,17 @@ class NodeBL:
                         elif msg==FAILEDTOSAVEBLOCK:
                             raise Exception
                     '''
+                skt.send(format_data("UPDATED" + ">" + b_id).encode())
+                print("aufff")
                 return True
             else: # if sent if is wrong
+                print("afffffffffffffs")
                 skt.send(format_data(WRONGID).encode())
                 return False
 
         except Exception as e:
-            write_to_log(" NodeBL / failed to update blockchain")
-            s._last_error = "Failed to update blockchain"
+            write_to_log(f" NodeBL / failed to update blockchain; {e}")
+            s._last_error = f"Failed to update blockchain; {e}"
             return False
                     
 
@@ -330,8 +374,7 @@ class NodeBL:
     def get_last_error(s):
         return s._last_error
     
-    def calculate_balik(s, b_id: int):
-        conn = sqlite3.connect(f"databases/Node/blockchain.db") # client/node/miner
+    def calculate_balik(s, b_id: int, conn):
         cursor = conn.cursor()
         try:
             cursor.execute(f'''
@@ -342,11 +385,11 @@ class NodeBL:
 
             for trans in transes:
                 cursor.execute(f'''
-                UPDATE balances SET amount = amount + {trans[2]} WHERE address={trans[1]} AND 
+                UPDATE balances SET amount = amount + {trans[2]} WHERE address='{trans[3]}' AND token = '{trans[5]}'
                 ''')
 
                 cursor.execute(f'''
-                UPDATE balances SET amount = amount - {trans[2]} WHERE address={trans[0]}
+                UPDATE balances SET amount = amount - {trans[4]} WHERE address='{trans[2]}' AND token = '{trans[5]}'
                 ''')    
         
             return True

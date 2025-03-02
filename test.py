@@ -7,7 +7,7 @@ from ecdsa.util import sigencode_string
 import socket
 from select import select
 import binascii
-import datetime
+from datetime import datetime
 import threading
 import json
 import os
@@ -105,50 +105,51 @@ print(num.encode())
 '''
 
 
-    
-
-
-
-
-
-
-'''
-nonce = 0
-diff = 5
-strheader = "(asdasd, asdasdasd, 123123123123123123123123123231, 1233232323213, asdasdasd, "
-start_time = time.time()
-while True:
-    
-    if nonce>100000000:
-        print("erer")
-        break
-    if nonce%100000==0:
-        print(nonce)
-        print(time.time() - start_time)
-    header = strheader + str(nonce)+ ")" # header with no hash
-
-    hash = hashex(hashex(header)) # sha256 *2 the header with the nonce
-
-    if hash.startswith(diff*"0"): # if the hash is good mine the block
-        print(hash)
-        print("Mined")
-        mining_time = time.time()
-        print(mining_time-start_time)
-        break
-    
-
-    else:
-        nonce+=1 # increase the nonce
-
-
-'''
-connp = sqlite3.connect(f'databases/Node/pending.db')
-cursorp = connp.cursor()
-conn= sqlite3.connect(f'databases/Client/blockchain.db')
+conn = sqlite3.connect(f'databases/Node/blockchain.db')
 cursor = conn.cursor()
+cursor.execute(f'''
+SELECT * from transactions
+''')
+tr_list = cursor.fetchall()
+print(str(tr_list[0]))
+merkle_root = hashex("(1, '0000000000000000000000000000000000000000000000000000000000000000', 'a854ec5e022d522335e248a4580ee9dba18328afc3befe460ba29f0edbd68e0e', '24.02.2025 09:58:52', 2, 100)")
+print(merkle_root)
 
-cursor.execute('''
-    SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
-    ''')
-lastb_id, prev_hash = cursor.fetchone() # get the last block
-print(lastb_id, prev_hash)
+
+
+
+
+
+'''
+trial = ""
+sum=0
+for i in range(10):
+    time.sleep(2)
+    nonce=0
+    start_time = time.time()
+    while True:
+        
+        if nonce>100000000:
+            trial += "NO \n"
+            break
+        if nonce%100000==0:
+            headers = strheader + datetime.now().strftime("%d.%m.%Y %H:%M:%S") + ", "
+        header = headers + str(nonce)+ ")" # header with no hash
+
+        hash = hashex(hashex(header)) # sha256 *2 the header with the nonce
+
+        if hash.startswith(diff*"0"): # if the hash is good mine the block
+            mining_time = time.time()-start_time
+            trial = trial +str(mining_time) + "\n"
+            sum += mining_time
+            print(mining_time)
+            break
+        
+
+        else:
+            nonce+=1 # increase the nonce
+
+print(trial)
+print(sum/10)
+'''
+

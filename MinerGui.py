@@ -56,7 +56,7 @@ class MinerGUI:
 
         self._window = Tk()
 
-        self._window.title("Client GUI")
+        self._window.title("Miner GUI")
 
         # Disable resize to fit with the background image
         self._window.resizable(False, False)

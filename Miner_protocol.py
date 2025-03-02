@@ -65,64 +65,67 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
     saves the block and the transactions in the database
     '''
     success = True
-    try:
+    #try:
         #create cursor
-        cursor = conn.cursor()
+    cursor = conn.cursor()
+    print(header)
+    head_str = header # get the string version of the header data
+    header_tuple  = ast.literal_eval(head_str)
+    id = header_tuple[0] 
 
-        head_str = header # get the string version of the header data
-        header_tuple  = ast.literal_eval(head_str)
-        id = header_tuple[0] 
+    # verify the block
+    cursor.execute('''
+        SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
+        ''')
+    res = cursor.fetchone() # get the last block
 
-        # verify the block
-        cursor.execute('''
-            SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
-            ''')
-        res = cursor.fetchone() # get the last block
+    if res == None and id!=1: # if the chain is empty and not getting the first block
+        return False, "Block id is invalid"
 
-        if res ==None and id!=1:
-            return False, "Block id is invalid"
-        
+    if res: # if not empty
         lastb_id, prev_hash = res
-        
-        if id!=lastb_id+1: # check the block_id
+        if lastb_id and id!=lastb_id+1: # check the block_id
             return False, "Block id is invalid"
-        
-        head_no_hash = "(" +str(id) +str(header_tuple[2:])[1:]
-        if hashex(head_no_hash)!=header_tuple[1] : # check the hash or header_tuple[2]!=prev_hash
-
-            return False, "Header hash is invalid"
-        
-        
-        #store it in the db
-        cursor.execute(f'''
-                INSERT INTO blocks 
-                VALUES {head_str}
-                ''')
-        conn.commit()
-
-        success =  recieve_trs(skt, conn) # store the transactions of the block
-        if success:
-            write_to_log(f"Successfully saved the block {id} and its transactions") # log 
-
-            return True, "" # if all saved successfully
-        
-        else: #if all saved unsuccessfully
-            #delete all the wrong saved data
-            cursor.execute(f''' 
-            DELETE FROM blocks WHERE block_id = {id} ''')
-
-            cursor.execute(f'''
-            DELETE FROM transactions WHERE block_id = {id} ''')
-            conn.commit()
-            conn.close()
-            return False, "Miner error"
     
-    except Exception as e:
-        if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
-            return False, "Already have the block"
-        #log the exception
-        write_to_log(f" MinerP / couldnt save the block header; {e}")
+    head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
+    print(head_no_hash)
+    print(hashex(head_no_hash))
+    print(header_tuple[1])
+    if hashex(head_no_hash)!=header_tuple[1] : # check the hash or header_tuple[2]!=prev_hash
+        return False, "Header hash is invalid"
+    print("23423")
+    
+    #store it in the db
+    cursor.execute(f'''
+            INSERT INTO blocks 
+            VALUES {head_str}
+            ''')
+    conn.commit()
+    
+    success =  recieve_trs(skt, conn) # store the transactions of the block
+    if success:
+        write_to_log(f"Successfully saved the block {id} and its transactions") # log 
+
+        return True, "" # if all saved successfully
+    
+    else: #if all saved unsuccessfully
+        #delete all the wrong saved data
+        cursor.execute(f''' 
+        DELETE FROM blocks WHERE block_id = {id} ''')
+
+        cursor.execute(f'''
+        DELETE FROM transactions WHERE block_id = {id} ''')
+        conn.commit()
+        conn.close()
+        write_to_log("kkfkfkfkfkfkf")
         return False, "Miner error"
+    
+    #except Exception as e:
+    #    if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
+    #        return False, "Already have the block"
+    #    #log the exception
+    #    write_to_log(f" MinerP / couldnt save the block header; {e}")
+    #    return False, "Miner error"
   
 def recieve_trs(skt: socket, conn: sqlite3.Connection):
     '''
@@ -139,6 +142,7 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
             (success, transaction) = receive_buffer(skt)
 
             if success: #when recieved a message
+                print(transaction)
                 if transaction==BLOCKSTOPMSG: #if all transactions are sent
                     break
                 #store the transaction

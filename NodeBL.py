@@ -294,6 +294,7 @@ class NodeBL:
             else:
                 self._last_error = f"miners {user} socket is wrong "
                 write_to_log(" Node / miners {user} socket is wrong")
+                return
                             #push the error in gui
     
     

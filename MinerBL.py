@@ -11,6 +11,7 @@ import binascii
 import json
 import os
 import ast
+import traceback
 
 class Block:
 
@@ -102,9 +103,9 @@ class Miner:
             # Handle failure
             self._socket_obj = None
             write_to_log(f" 路 Miner 路 failed to connect miner; ex:{e}")
-
+            traceback.print_exc()
             self._last_error = f"An error occurred in miner bl [connect function]\nError : {e}"
-
+            
             return False
     
 
@@ -235,6 +236,7 @@ class Miner:
                 else:
                     self._last_error = "Cannot connect to blockchain"
                     print("nono")
+                    self.disconnect()
 
             if msg.startswith(TRANS): # if got a transaction from a client
                 print("miner got trans")
@@ -266,17 +268,17 @@ class Miner:
                 break
 
 
-    def build_merkle_tree(s):
-        conn = sqlite3.connect(f'databases/Miner/pending.db')
-        cursor = conn.cursor()
+    def build_merkle_tree(s, connp):
+
+        cursor = connp.cursor()
         cursor.execute(f'''
-                        SELECT tr_hash FROM transactions 
+                        SELECT * FROM transactions 
                     ''')      
-        hashes = cursor.fetchall()
-        conn.close()
-        # Base case: If no transactions are provided, return None
-        if len(hashes)==0:
+        trs = cursor.fetchall()
+        if trs==None: # if no transactions
             return hashex("0"*64)
+        hashes = [hashex(hashex(str(t))) for t in trs]
+
         # If only one transaction, the Merkle Root is its hash
         if len(hashes) == 1:
             return hashes[0]
@@ -332,19 +334,20 @@ class Miner:
             s._last_error = f"Error in __operate_transaction() func ; {e}"
             
             
-    def __start_mining(s, conn2):
-        chaincursor = conn2.cursor()
+    def __start_mining(s, conn, connp):
+        chaincursor = conn.cursor()
         
         try:
 
             diff = s.__diff
-            merkle_root = s.build_merkle_tree() # build the root
+            merkle_root = s.build_merkle_tree(connp) # build the root
 
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
             ''')
-            p_hash = chaincursor.fetchone()[0] # previous hash of the next block
-
+            p_hash = chaincursor.fetchone() # previous hash of the next block
+            if p_hash==None: # if the first block
+                p_hash="0"*64
             s.__mining = True
             nonce = 0
             start_time = time.time()
@@ -369,16 +372,16 @@ class Miner:
 
             return False, "Not mined fast enough"
         except Exception as e: # failure handling
-            write_to_log(f" MinerBL / Failed to mine block {s.__lastb+1}")
-            s._last_error = f"Failed to mine block {s.__lastb+1}"
+            write_to_log(f" MinerBL / Failed to mine block {str(s.__lastb+1)}")
+            s._last_error = f"Failed to mine block {str(s.__lastb+1)}"
 
             return False,f"{e}"
     
     def _always_mine(s):
-        conn = sqlite3.connect(f'databases/Node/blockchain.db')
-        pend_conn = sqlite3.connect(f'databases/Node/pending.db')
+        conn = sqlite3.connect(f'databases/Miner/blockchain.db')
+        pend_conn = sqlite3.connect(f'databases/Miner/pending.db')
         while s.__connected:
-            result = s.__start_mining(conn) #  header, time
+            result = s.__start_mining(conn, pend_conn) #  header, time
             if result[0]==False: # if block came earlier
                 ermsg = result[1]
             

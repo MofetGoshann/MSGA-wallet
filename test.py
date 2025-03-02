@@ -108,12 +108,10 @@ print(num.encode())
 conn = sqlite3.connect(f'databases/Node/blockchain.db')
 cursor = conn.cursor()
 cursor.execute(f'''
-SELECT * from transactions
+SELECT block_hash from blocks WHERE block_id={1}
 ''')
-tr_list = cursor.fetchall()
-print(str(tr_list[0]))
-merkle_root = hashex("(1, '0000000000000000000000000000000000000000000000000000000000000000', 'a854ec5e022d522335e248a4580ee9dba18328afc3befe460ba29f0edbd68e0e', '24.02.2025 09:58:52', 2, 100)")
-print(merkle_root)
+
+print(hashex("(1, '0000000000000000000000000000000000000000000000000000000000000000', 'a854ec5e022d522335e248a4580ee9dba18328afc3befe460ba29f0edbd68e0e', '24.02.2025 09:58:52', 2, 1000)"))
 
 
 

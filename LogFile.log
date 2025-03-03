@@ -1,24 +1,19 @@
-2025-03-03 01:40:10,188 - INFO -   Node    · starting
-2025-03-03 01:40:10,189 - INFO -   Node    · listening on 0.0.0.0
-2025-03-03 01:40:13,815 - INFO -   Protocol  · Buffer size : 5
-2025-03-03 01:40:13,815 - INFO -   Protocol  · Buffer data : asd>2
-2025-03-03 01:40:13,816 - INFO -   Node    · active connection 0
-2025-03-03 01:40:13,816 - INFO -   Node   new miner : asd connected
-2025-03-03 01:40:13,882 - INFO -   Protocol  · Buffer size : 43
-2025-03-03 01:40:13,882 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>0
-2025-03-03 01:40:13,882 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>0
-2025-03-03 01:40:13,883 - INFO -   Protocol  · Buffer size : 20
-2025-03-03 01:40:13,883 - INFO -   Protocol  · Buffer data : Sending the blocks>1
-2025-03-03 01:40:13,884 - INFO -   Protocol  · Buffer size : 256
-2025-03-03 01:40:13,884 - INFO -   Protocol  · Buffer data : Sending block...>(1, '0c5110cf47b6d67d720cae749ea1b30bed27e53f8739fd9ff8d6ab1ee80abec8', '0000000000000000000000000000000000000000000000000000000000000000', 'a854ec5e022d522335e248a4580ee9dba18328afc3befe460ba29f0edbd68e0e', '24.02.2025 09:58:52', 2, 1000)
-2025-03-03 01:40:13,895 - INFO -   Protocol  · Buffer size : 258
-2025-03-03 01:40:13,895 - INFO -   Protocol  · Buffer data : (1, 1, '24.02.2025 09:58:52', 'zxc', 'qwe', 10.0, 'SNC', '6458a7db92c205af662324355484eac8e078ec8223a8b9063f9392110759ee3a3fa9355424ee9d72fc91c2512b33a724a59771983e7c41b8e3b2b46421d6e520', '024948cd415bd39de5f6e62252128d7812830f0129c58ead444264a8f19f2cf9ed')
-2025-03-03 01:40:13,901 - INFO -   Protocol  · Buffer size : 259
-2025-03-03 01:40:13,901 - INFO -   Protocol  · Buffer data : (1, 1, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC', '2d1df490e531e976d8133131f2005ff0a2c8336e159ffea721cf1801ddef42d5b327f92d895425f17632865fc041358f3d8aad157b2efa7433eeff0c78ba7e99', '021bc6729271da395ac2a57cf8583db10af6f7288cbee81d55d61c0618469043f7')
-2025-03-03 01:40:13,907 - INFO -   Protocol  · Buffer size : 27
-2025-03-03 01:40:13,907 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-03 01:40:13,907 - INFO - Successfully saved the block 1 and its transactions
-2025-03-03 01:40:13,908 - INFO -   Protocol  · Buffer size : 9
-2025-03-03 01:40:13,908 - INFO -   Protocol  · Buffer data : UPDATED>1
-2025-03-03 01:40:13,928 - INFO -  \u8def Miner \u8def failed to connect miner; ex:can only concatenate str (not "int") to str
-2025-03-03 01:40:16,920 - INFO -  Node / miners {user} socket is wrong
+2025-03-03 10:21:32,383 - INFO -   Node    · starting
+2025-03-03 10:21:32,384 - INFO -   Node    · listening on 0.0.0.0
+2025-03-03 10:21:37,449 - INFO -   Protocol  · Buffer size : 5
+2025-03-03 10:21:37,449 - INFO -   Protocol  · Buffer data : asd>2
+2025-03-03 10:21:37,449 - INFO -   Node    · active connection 0
+2025-03-03 10:21:37,449 - INFO -   Node   new miner : asd connected
+2025-03-03 10:21:37,511 - INFO -   Protocol  · Buffer size : 43
+2025-03-03 10:21:37,511 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>1
+2025-03-03 10:21:37,511 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>1
+2025-03-03 10:21:37,511 - INFO -   Protocol  · Buffer size : 20
+2025-03-03 10:21:37,512 - INFO -   Protocol  · Buffer data : Sending the blocks>1
+2025-03-03 10:21:37,512 - INFO -  NodeBL / failed to update blockchain; near ")": syntax error
+2025-03-03 10:21:40,504 - INFO -  Miner / Timed out on chainupdate
+2025-03-03 10:21:40,504 - INFO -  \u8def Client \u8def ('127.0.0.1', 59517) closing
+2025-03-03 10:21:40,504 - INFO -  \u8def Client \u8def the client closed
+2025-03-03 10:21:40,504 - INFO -   Protocol  · Buffer size : 4
+2025-03-03 10:21:40,504 - INFO -   Protocol  · Buffer data : EXIT
+2025-03-03 10:21:40,504 - INFO -  Node / received from miner : asd - EXIT
+2025-03-03 10:21:40,566 - INFO -  Node / miners {user} socket is wrong

@@ -249,11 +249,11 @@ class NodeBL:
 
                 if msg.startswith(MINEDBLOCKSENDMSG): # if miner is sending a block
                     res = msg.split(">") # minedblocksend, header, time
-
+                    print(res[1])
                     (suc,  bl_id) =  recieve_block(res[1], conn, sock)
                     if suc: # if recieved block successfully
                         self.__timesum+=float(res[2])
-
+                        print("saved")
                         if bl_id%5==0: # adjust the difficulty
                             avg = self.__timesum/5
                             self.calculate_diff(avg)
@@ -275,7 +275,7 @@ class NodeBL:
                             
                             write_to_log(f" Node / sent the block to {session.getusername()}")
                     else:
-                        write_to_log(f' Node / Couldnt recieve block from {user}')
+                        write_to_log(f' Node / Couldnt recieve block from {user}; {bl_id}')
 
                 elif msg.startswith(CHAINUPDATEREQUEST):
                     self.__sendupdatedchain(sock, msg, conn)     
@@ -316,25 +316,27 @@ class NodeBL:
             id_list = cursor.fetchall() # get all the blocks needed to send
             print(2)
             if id_list: # if valid 
-
+                print(222222)
                 if len(id_list)==1: # if the senders last block is the actual last block send confirmation
+                    print(24444222)
                     if int(id)==id_list[0][0]: # if last block the same
                         skt.send(format_data("UPDATED" + ">" + id).encode())
                         return True
                     
                     # if its the only block
                     skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
-
+                    print(22277777777772)
                     if send_block(id_list[0][0], skt, conn)==False:  # send the only block
                         s._last_error = " NodeBL / Couldnt update blockhain"
                         print("badbad")
                         return False
+                    print(222777777777799992)
                     skt.send(format_data("UPDATED" + ">" + str(id_list[0][0])).encode())
                     return True
                 
                 id_list = id_list[1:]
                 skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
-                
+                print(2)
                 for b_id in id_list: # send all the blocks the member is missing 
                     
                     if send_block(b_id, skt, conn)==False:
@@ -355,6 +357,7 @@ class NodeBL:
                 return True
             else: # if sent if is wrong
                 print("afffffffffffffs")
+                
                 skt.send(format_data(WRONGID).encode())
                 return False
 

@@ -111,7 +111,7 @@ cursor.execute(f'''
 SELECT block_hash from blocks WHERE block_id={1}
 ''')
 
-print(hashex("(1, '0000000000000000000000000000000000000000000000000000000000000000', 'a854ec5e022d522335e248a4580ee9dba18328afc3befe460ba29f0edbd68e0e', '24.02.2025 09:58:52', 2, 1000)"))
+print(hashex("ed53dd9da999e70e0e34e064194b559fddd85c5a603b5b21ba720d9fd3784513"))
 
 
 

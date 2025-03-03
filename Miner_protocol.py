@@ -68,7 +68,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
     #try:
         #create cursor
     cursor = conn.cursor()
-    print(header)
+
     head_str = header # get the string version of the header data
     header_tuple  = ast.literal_eval(head_str)
     id = header_tuple[0] 
@@ -88,12 +88,10 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
             return False, "Block id is invalid"
     
     head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
-    print(head_no_hash)
-    print(hashex(head_no_hash))
-    print(header_tuple[1])
-    if hashex(head_no_hash)!=header_tuple[1] : # check the hash or header_tuple[2]!=prev_hash
+
+    if hashex(hashex(head_no_hash))!=header_tuple[1] : # check the hash or header_tuple[2]!=prev_hash
         return False, "Header hash is invalid"
-    print("23423")
+
     
     #store it in the db
     cursor.execute(f'''
@@ -117,7 +115,6 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
         DELETE FROM transactions WHERE block_id = {id} ''')
         conn.commit()
         conn.close()
-        write_to_log("kkfkfkfkfkfkf")
         return False, "Miner error"
     
     #except Exception as e:
@@ -315,7 +312,8 @@ def send_mined(header: str, skt :socket, conn) -> bool:
             return True
             
         else:
-            #the block id is false
+            #the block mined has no transactions
+            skt.send(format_data(BLOCKSTOPMSG).encode())
             write_to_log(f" protocol / failed to send a block")
             return False, f"Failed to send a block, wrong header"
     except Exception as e:
@@ -414,7 +412,7 @@ def miner_on_start(skt:socket, conn, connp):
         SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
         ''')
 
-    lastb_id= cursor.fetchone() # get the last block
+    lastb_id= cursor.fetchone()[0] # get the last block
 
     if lastb_id:
         skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())

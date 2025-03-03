@@ -1,6 +1,7 @@
 from protocol import *
 import socket
 import sqlite3
+import traceback
 
 def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
     '''
@@ -8,7 +9,7 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
     returns true if sent all without problems
     false if failed to retrieve from the tables
     '''
-    
+    print(22277777777772)
     cursor = conn.cursor()
     #getting the block header
     cursor.execute(f'''
@@ -18,11 +19,13 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
     block_header = cursor.fetchone() # retrieve the block header to send first
     if block_header: # if valid
         # getting the transaction list
+        print(22277777777772)
         cursor.execute(f'''
         SELECT * FROM transactions WHERE block_id = {blockid}
                     ''')
         
         trans_list = cursor.fetchall()
+        print(22277777777772)
         if trans_list: # if valid
             print(BLOCKSENDMSG+">"+str(block_header))
             skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
@@ -94,17 +97,20 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
 
         # verify the block
         cursor.execute('''
-            SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
+            SELECT block_id, block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
             ''')
         lastb_id, prev_hash = cursor.fetchone() # get the last block
         
         if id!=lastb_id+1: # check the block_id
             skt.send(format_data("Block id is invalid").encode())
-            return False, ""
-        head_no_hash = "(" +id +str(header_tuple[2:])[1:]
-        if hashex(head_no_hash)!=header_tuple[1] and header_tuple[2]!=prev_hash: # check the hash
+            return False, "Block id is invalid"
+        head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
+        print(header)
+        print(head_no_hash)
+        print(hashex(hashex(head_no_hash)))
+        if hashex(hashex(head_no_hash))!=header_tuple[1] or header_tuple[2]!=prev_hash: # check the hash
             skt.send(format_data("Header hash is invalid").encode())
-            return False, ""
+            return False, "Header hash is invalid"
         
         
         #store it in the db
@@ -129,13 +135,14 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
             DELETE FROM transactions WHERE block_id = {id} ''')
             conn.commit()
             conn.close()
-            return False, ""
+            return False, "did not save the transactions"
     
     except Exception as e:
         if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
             skt.send(format_data("Already have the block").encode())
         #log the exception
         write_to_log(f" protocol / couldnt save the block header; {e}")
+        traceback.print_exc()
         return False
   
 def recieve_trs(skt: socket, conn: sqlite3.Connection):

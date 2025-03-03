@@ -85,8 +85,9 @@ class Miner:
                 write_to_log(" Miner / Timed out on chainupdate")
                 self.disconnect()
                 return False
-            self.__lastb = self.__recieved_message.split(">")[1]
-            print("gutt")
+            self.__lastb = int(self.__recieved_message.split(">")[1])
+            #self.__diff = self.__recieved_message.split(">")[2]
+
 
         
             listening_thread = threading.Thread(target=self._always_mine(), args=())
@@ -350,11 +351,13 @@ class Miner:
                 p_hash="0"*64
             s.__mining = True
             nonce = 0
+            thisb = s.__lastb+1
+
             start_time = time.time()
             while s.__mining:
                 if nonce%100000==0: # every 100000 calculations update the time
-                    timestamp = datetime.now().strftime(tm_format)
-                    strheader = f"({s.__lastb+1}, {p_hash}, {merkle_root}, {timestamp}, {diff}, "
+                    timestamp = datetime.now().strftime(tm_format) #  
+                    strheader = f"({str(thisb)}, '{str(p_hash[0])}', '{str(merkle_root)}', '{str(timestamp)}', {str(diff)}, "
                 
                 header = strheader + str(nonce)+ ")" # header with no hash
 
@@ -362,9 +365,9 @@ class Miner:
 
                 if hash.startswith(diff*"0"): # if the hash is good mine the block
                     # mining=False
-                    full_block_header = f"({s.__lastb+1}, '{hash}', '{p_hash}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
+                    full_block_header = f"({thisb}, '{hash}', '{p_hash[0]}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
                     mine_time = time.time() - start_time
-
+                    
                     return full_block_header, mine_time # return the header with the hash
 
                 else:
@@ -386,9 +389,9 @@ class Miner:
                 ermsg = result[1]
             
             else: # mined successfully
-                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1]).encode()) # broadcast to everyone
+                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+str(result[1])).encode()) # broadcast to everyone
                 #stall till got confirmation
-                if send_mined==True:
+                if send_mined(result[0], s._socket_obj, pend_conn)==True:
                     start_time = time.time()
 
                     while time.time() - start_time < 3:

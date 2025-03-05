@@ -60,7 +60,7 @@ def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
 
 
 
-def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
+def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
     '''
     saves the block and the transactions in the database
     '''
@@ -72,7 +72,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
     head_str = header # get the string version of the header data
     header_tuple  = ast.literal_eval(head_str)
     id = header_tuple[0] 
-
+    
     # verify the block
     cursor.execute('''
         SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
@@ -99,6 +99,8 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
             VALUES {head_str}
             ''')
     conn.commit()
+    if tr=="2": # the block has no transactions
+        return True, ""
     
     success =  recieve_trs(skt, conn) # store the transactions of the block
     if success:
@@ -298,24 +300,25 @@ def send_mined(header: str, skt :socket, conn) -> bool:
     #getting the block header
     try:
         b_id = ast.literal_eval(header)[0]
+        print(b_id)
         cursor.execute(f'''
         SELECT * FROM transactions WHERE block_id = {b_id}
         ''')
         trans_list = cursor.fetchall()
-        if not trans_list==None: # if valid
+        if len(trans_list)!=0: # if valid
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t = str(tr)
                 skt.send(format_data(t).encode())
             skt.send(format_data(BLOCKSTOPMSG).encode())
 
-            return True
+            return True, ""
             
         else:
             #the block mined has no transactions
-            skt.send(format_data(BLOCKSTOPMSG).encode())
-            write_to_log(f" protocol / failed to send a block")
-            return False, f"Failed to send a block, wrong header"
+            write_to_log(f" protocol / Sent a block with no header")
+            return True, ""
+        
     except Exception as e:
             write_to_log(f" protocol / Failed to send a block; {e}")
             return False, f"Failed to send a block; {e}"
@@ -331,8 +334,9 @@ def saveblockchain(msg, skt:socket, conn):
             skt.settimeout(3) # exception after 3 seconds of no answer
             (success, header) = receive_buffer(skt) # getting the header of the block
             if success:
+                tr = header.split(">")[2]
                 header = header.split(">")[1]
-                (suc,  bl_id) =  recieve_block(header, conn, skt)
+                (suc,  bl_id) =  recieve_block(header, conn, skt, tr)
                 if suc==True:
                     count+=1
                 else:

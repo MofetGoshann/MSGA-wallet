@@ -53,7 +53,7 @@ class Miner:
         self.__user = username
         self.__lastb = None
         self.__mining = False
-        self.__diff = 0
+        self.__diff = 5
         self.__connected = False
         self._conn = sqlite3.connect(f'databases/Miner/blockchain.db')
         self._pend_conn  = sqlite3.connect(f'databases/Miner/pending.db')
@@ -276,8 +276,10 @@ class Miner:
                         SELECT * FROM transactions 
                     ''')      
         trs = cursor.fetchall()
-        if trs==None: # if no transactions
+        if len(trs)==0: # if no transactions
             return hashex("0"*64)
+        
+        print(trs)
         hashes = [hashex(hashex(str(t))) for t in trs]
 
         # If only one transaction, the Merkle Root is its hash
@@ -342,7 +344,9 @@ class Miner:
 
             diff = s.__diff
             merkle_root = s.build_merkle_tree(connp) # build the root
-
+            ist = "1"
+            if merkle_root==hashex("0"*64):
+                ist="2"
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
             ''')
@@ -368,30 +372,32 @@ class Miner:
                     full_block_header = f"({thisb}, '{hash}', '{p_hash[0]}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
                     mine_time = time.time() - start_time
                     
-                    return full_block_header, mine_time # return the header with the hash
+                    return full_block_header, mine_time[:5], ist # return the header with the hash
 
                 else:
                     nonce+=1 # increase the nonce
 
             return False, "Not mined fast enough"
         except Exception as e: # failure handling
-            write_to_log(f" MinerBL / Failed to mine block {str(s.__lastb+1)}")
+            write_to_log(f" MinerBL / Failed to mine block {str(s.__lastb+1)}; {e}")
             s._last_error = f"Failed to mine block {str(s.__lastb+1)}"
-
+            s.disconnect()
+            traceback.print_exc()
             return False,f"{e}"
     
     def _always_mine(s):
         conn = sqlite3.connect(f'databases/Miner/blockchain.db')
         pend_conn = sqlite3.connect(f'databases/Miner/pending.db')
         while s.__connected:
-            result = s.__start_mining(conn, pend_conn) #  header, time
+            result = s.__start_mining(conn, pend_conn) #  header, time, ist
             if result[0]==False: # if block came earlier
                 ermsg = result[1]
             
             else: # mined successfully
-                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+str(result[1])).encode()) # broadcast to everyone
+                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+str(result[1]) + ">"+ result[2]).encode()) # broadcast to everyone
                 #stall till got confirmation
-                if send_mined(result[0], s._socket_obj, pend_conn)==True:
+                res = send_mined(result[0], s._socket_obj, pend_conn)
+                if res[0]==True:
                     start_time = time.time()
 
                     while time.time() - start_time < 3:
@@ -408,6 +414,8 @@ class Miner:
                     update_mined_block(conn, pend_conn,result[0]) # update the transactions in local chain
 
                     s.update_balances() # update the balances
+                else:
+                    s.disconnect()
     
    
 

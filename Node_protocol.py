@@ -9,7 +9,6 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
     returns true if sent all without problems
     false if failed to retrieve from the tables
     '''
-    print(22277777777772)
     cursor = conn.cursor()
     #getting the block header
     cursor.execute(f'''
@@ -17,30 +16,28 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
             ''')
     
     block_header = cursor.fetchone() # retrieve the block header to send first
+
     if block_header: # if valid
         # getting the transaction list
-        print(22277777777772)
+
         cursor.execute(f'''
         SELECT * FROM transactions WHERE block_id = {blockid}
                     ''')
         
         trans_list = cursor.fetchall()
-        print(22277777777772)
-        if trans_list: # if valid
-            print(BLOCKSENDMSG+">"+str(block_header))
-            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
+        
+        
+        if trans_list: # if block has transactions
+            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)+">1").encode()) # sending the starter with tr in mind
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t= str(tr)
                 skt.send(format_data(t).encode())
-            skt.send(format_data(BLOCKSTOPMSG).encode())
-
-            return True
-            
         else:
-            #the block id is false
-            write_to_log(f" protocol / failed to send a block with index {blockid}")
-            return False
+            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)+">2").encode()) # sending the starter 2 is without transactions
+            
+        skt.send(format_data(BLOCKSTOPMSG).encode())
+        return True
         
 def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connection):
     '''
@@ -82,7 +79,7 @@ def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connect
 
     
 
-def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
+def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
     '''
     saves the block and the transactions in the database
     '''
@@ -105,9 +102,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
             skt.send(format_data("Block id is invalid").encode())
             return False, "Block id is invalid"
         head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
-        print(header)
-        print(head_no_hash)
-        print(hashex(hashex(head_no_hash)))
+
         if hashex(hashex(head_no_hash))!=header_tuple[1] or header_tuple[2]!=prev_hash: # check the hash
             skt.send(format_data("Header hash is invalid").encode())
             return False, "Header hash is invalid"
@@ -120,6 +115,9 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
                 ''')
         conn.commit()
 
+        if tr=="2": # the block has no transactions
+            return True, id
+        
         success =  recieve_trs(skt, conn) # store the transactions of the block
         if success:
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 
@@ -151,7 +149,6 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
     returns true if all are saved 
     returns false if had errors saving
     '''
-    conn = sqlite3.connect(f'databases/Node/blockchain.db')
     cursor = conn.cursor()
 
     recieving =True

@@ -80,6 +80,7 @@ class NodeBL:
             self._Node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._Node_socket.bind((ip, port))
 
+            self.__on_start()
             self.Node_process()
             # Return on success
             return True
@@ -249,8 +250,9 @@ class NodeBL:
 
                 if msg.startswith(MINEDBLOCKSENDMSG): # if miner is sending a block
                     res = msg.split(">") # minedblocksend, header, time
-                    print(res[1])
-                    (suc,  bl_id) =  recieve_block(res[1], conn, sock)
+
+                    ist = res[3]
+                    (suc,  bl_id) =  recieve_block(res[1], conn, sock, ist)
                     if suc: # if recieved block successfully
                         self.__timesum+=float(res[2])
                         print("saved")
@@ -258,8 +260,8 @@ class NodeBL:
                             avg = self.__timesum/5
                             self.calculate_diff(avg)
                             self.__timesum = 0
-
-                        self.__lastb =+ 1
+                        print(self.__lastb)
+                        self.__lastb = self.__lastb + 1
                         self.calculate_balik(self.__lastb, conn)
                         
                         sock.send(format_data(SAVEDBLOCK + ">" + str(self._diff)).encode())
@@ -267,10 +269,10 @@ class NodeBL:
                         for session in self._sessionlist:
                             #retransmit the block to all
                             skt=session.getsocket()
-                            if session.gettype()==2 and session.getuser()!=user: # to the miners
+                            if session.gettype()==2 and session.getusername()!=user: # to the miners
                                 send_to_miner(msg, self._diff,sock, conn)
 
-                            else: # to clients
+                            elif session.gettype()==1: # to clients
                                 send_block(bl_id, sock, conn)
                             
                             write_to_log(f" Node / sent the block to {session.getusername()}")
@@ -307,41 +309,40 @@ class NodeBL:
         
         id = msg.split(">")[1]
         cursor = conn.cursor()
-        print(2)
+
         try:
             cursor.execute(f'''
             SELECT block_id FROM blocks WHERE block_id > {int(id)-1} 
             ''')
-            print(2)
+
             id_list = cursor.fetchall() # get all the blocks needed to send
-            print(2)
+
             if id_list: # if valid 
-                print(222222)
+
                 if len(id_list)==1: # if the senders last block is the actual last block send confirmation
-                    print(24444222)
+
                     if int(id)==id_list[0][0]: # if last block the same
                         skt.send(format_data("UPDATED" + ">" + id).encode())
                         return True
                     
                     # if its the only block
                     skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
-                    print(22277777777772)
+
                     if send_block(id_list[0][0], skt, conn)==False:  # send the only block
                         s._last_error = " NodeBL / Couldnt update blockhain"
-                        print("badbad")
+                        write_to_log("Failed to update chain")
                         return False
-                    print(222777777777799992)
+
                     skt.send(format_data("UPDATED" + ">" + str(id_list[0][0])).encode())
                     return True
                 
                 id_list = id_list[1:]
                 skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
-                print(2)
+
                 for b_id in id_list: # send all the blocks the member is missing 
                     
-                    if send_block(b_id, skt, conn)==False:
+                    if send_block(b_id[0], skt, conn)==False:
                         s._last_error = " NodeBL / Couldnt update blockhain"
-                        print("badbad")
                         return False
                     '''
                     skt.settimeout(1.5) # if in 1.5 seconds no answer end raise esception
@@ -352,7 +353,7 @@ class NodeBL:
                         elif msg==FAILEDTOSAVEBLOCK:
                             raise Exception
                     '''
-                skt.send(format_data("UPDATED" + ">" + b_id).encode())
+                skt.send(format_data("UPDATED" + ">" + str(b_id[0])).encode())
                 print("aufff")
                 return True
             else: # if sent if is wrong
@@ -386,6 +387,9 @@ class NodeBL:
             ''')
 
             transes = cursor.fetchall()
+            print(transes)
+            if len(transes)==0:
+                return True
 
             for trans in transes:
                 cursor.execute(f'''
@@ -395,7 +399,7 @@ class NodeBL:
                 cursor.execute(f'''
                 UPDATE balances SET amount = amount - {trans[4]} WHERE address='{trans[2]}' AND token = '{trans[5]}'
                 ''')    
-        
+            conn.commit()
             return True
         except Exception as e:
             write_to_log("Failed to calculate balance ; " +e)
@@ -411,6 +415,19 @@ class NodeBL:
         
         if m_time<40:
             s._diff+=1
+    
+    def __on_start(s):
+        cursor = s._conn.cursor()
+        cursor.execute('''
+        SELECT block_id, difficulty FROM blocks ORDER BY block_id DESC LIMIT 1
+        ''')
+        res = cursor.fetchone()
+        if res:
+            s.__lastb, s._diff= res 
+            print(s.__lastb, s._diff)
+        
+        
+        
                 
 
 

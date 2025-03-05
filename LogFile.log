@@ -1,19 +1,26 @@
-2025-03-03 10:21:32,383 - INFO -   Node    · starting
-2025-03-03 10:21:32,384 - INFO -   Node    · listening on 0.0.0.0
-2025-03-03 10:21:37,449 - INFO -   Protocol  · Buffer size : 5
-2025-03-03 10:21:37,449 - INFO -   Protocol  · Buffer data : asd>2
-2025-03-03 10:21:37,449 - INFO -   Node    · active connection 0
-2025-03-03 10:21:37,449 - INFO -   Node   new miner : asd connected
-2025-03-03 10:21:37,511 - INFO -   Protocol  · Buffer size : 43
-2025-03-03 10:21:37,511 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>1
-2025-03-03 10:21:37,511 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>1
-2025-03-03 10:21:37,511 - INFO -   Protocol  · Buffer size : 20
-2025-03-03 10:21:37,512 - INFO -   Protocol  · Buffer data : Sending the blocks>1
-2025-03-03 10:21:37,512 - INFO -  NodeBL / failed to update blockchain; near ")": syntax error
-2025-03-03 10:21:40,504 - INFO -  Miner / Timed out on chainupdate
-2025-03-03 10:21:40,504 - INFO -  \u8def Client \u8def ('127.0.0.1', 59517) closing
-2025-03-03 10:21:40,504 - INFO -  \u8def Client \u8def the client closed
-2025-03-03 10:21:40,504 - INFO -   Protocol  · Buffer size : 4
-2025-03-03 10:21:40,504 - INFO -   Protocol  · Buffer data : EXIT
-2025-03-03 10:21:40,504 - INFO -  Node / received from miner : asd - EXIT
-2025-03-03 10:21:40,566 - INFO -  Node / miners {user} socket is wrong
+2025-03-05 12:59:05,528 - INFO -   Node    · starting
+2025-03-05 12:59:05,529 - INFO -   Node    · listening on 0.0.0.0
+2025-03-05 12:59:09,609 - INFO -   Protocol  · Buffer size : 5
+2025-03-05 12:59:09,609 - INFO -   Protocol  · Buffer data : asd>2
+2025-03-05 12:59:09,609 - INFO -   Node    · active connection 0
+2025-03-05 12:59:09,609 - INFO -   Node   new miner : asd connected
+2025-03-05 12:59:09,662 - INFO -   Protocol  · Buffer size : 44
+2025-03-05 12:59:09,662 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>13
+2025-03-05 12:59:09,662 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>13
+2025-03-05 12:59:09,662 - INFO -   Protocol  · Buffer size : 20
+2025-03-05 12:59:09,662 - INFO -   Protocol  · Buffer data : Sending the blocks>1
+2025-03-05 12:59:09,662 - INFO -   Protocol  · Buffer size : 261
+2025-03-05 12:59:09,662 - INFO -   Protocol  · Buffer data : Sending block...>(14, '00000da51065b37651e8bdf3c293143104ffdb4eb0da3edaf8cb02f5a97b8af4', '0000051933fe20f120462894a003692fdea853fa4b6c408fd57f928428d4c94d', '60e05bd1b195af2f94112fa7197a5c88289058840ce7c6df9693756bc6250f55', '05.03.2025 12:56:27', 5, 657343)>2
+2025-03-05 12:59:09,668 - INFO -   Protocol  · Buffer size : 27
+2025-03-05 12:59:09,668 - INFO -   Protocol  · Buffer data : Stop recieving transactions
+2025-03-05 12:59:09,668 - INFO -   Protocol  · Buffer size : 10
+2025-03-05 12:59:09,668 - INFO -   Protocol  · Buffer data : UPDATED>14
+2025-03-05 12:59:24,713 - INFO -   Protocol  · Buffer size : 284
+2025-03-05 12:59:24,713 - INFO -   Protocol  · Buffer data : Sending mined block>(15, '00000cf0b59d99d805b5f170c683381d61f75fa076d1c73dda8ea6a17a111c8a', '00000da51065b37651e8bdf3c293143104ffdb4eb0da3edaf8cb02f5a97b8af4', '60e05bd1b195af2f94112fa7197a5c88289058840ce7c6df9693756bc6250f55', '05.03.2025 12:59:24', 5, 5866908)>14.987639904022217>2
+2025-03-05 12:59:24,713 - INFO -  Node / received from miner : asd - Sending mined block>(15, '00000cf0b59d99d805b5f170c683381d61f75fa076d1c73dda8ea6a17a111c8a', '00000da51065b37651e8bdf3c293143104ffdb4eb0da3edaf8cb02f5a97b8af4', '60e05bd1b195af2f94112fa7197a5c88289058840ce7c6df9693756bc6250f55', '05.03.2025 12:59:24', 5, 5866908)>14.987639904022217>2
+2025-03-05 12:59:24,713 - INFO -  protocol / Failed to send a block; no such column: block_id
+2025-03-05 12:59:24,714 - INFO -  \u8def Client \u8def ('127.0.0.1', 64560) closing
+2025-03-05 12:59:24,714 - INFO -  \u8def Client \u8def the client closed
+2025-03-05 12:59:24,715 - INFO -  \u8def Miner \u8def failed to connect miner; ex:'NoneType' object has no attribute 'getsockname'
+2025-03-05 12:59:24,720 - INFO -  Node / sent the block to asd
+2025-03-05 12:59:24,779 - INFO -  Node / miners {user} socket is wrong

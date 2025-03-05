@@ -107,13 +107,13 @@ print(num.encode())
 
 conn = sqlite3.connect(f'databases/Node/blockchain.db')
 cursor = conn.cursor()
-cursor.execute(f'''
-SELECT block_hash from blocks WHERE block_id={1}
+cursor.execute('''
+SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
 ''')
 
-print(hashex("ed53dd9da999e70e0e34e064194b559fddd85c5a603b5b21ba720d9fd3784513"))
+g = cursor.fetchone()[0]
 
-
+print(g)
 
 
 

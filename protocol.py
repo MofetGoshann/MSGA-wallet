@@ -2,6 +2,7 @@ import hashlib
 import shutil
 import logging
 import socket
+import json
 from hashlib import sha256
 from hashlib import blake2s
 from ecdsa import ecdsa, VerifyingKey, NIST256p

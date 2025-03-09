@@ -20,7 +20,7 @@ COLOR_LIGHT_GRAY: str = "#c0c0c0"
 
 class NodeGUI:
     def __init__(self):
-        self._server = None  # server bl obj
+        self._node = None  # node_node bl obj
 
         self._window = None
 
@@ -39,16 +39,16 @@ class NodeGUI:
         self._table = None
 
         
-        self._back_img_size = [1000, 400]
-        self._btn_img_size = [400, 100]        
+        self._back_img_size = [500, 400]
+        self._btn_img_size = [100, 10]        
         self.__setup_window()
         
     def __setup_window(self):
         self._window = Tk()
 
-        self._window.title("Server GUI")
+        self._window.title("Node GUI")
 
-        self._window.resizable(False, False)
+        self._window.resizable(True, True)
 
         self._window.geometry(f"{self._back_img_size[0]}x{self._back_img_size[1]}")
 
@@ -59,7 +59,7 @@ class NodeGUI:
         #self._back_canvas.create_image(0, 0, anchor="nw", image=self._back_img)
 
         # In-Application title
-        self._back_canvas.create_text(20, 30, text="Server", font=FONT_TITLE, fill=COLOR_DARK_GRAY, anchor="nw")
+        self._back_canvas.create_text(20, 30, text="Node", font=FONT_TITLE, fill=COLOR_DARK_GRAY, anchor="nw")
 
         self.__create_elements()
     
@@ -71,27 +71,29 @@ class NodeGUI:
         # Buttons
         self._start_button = Button(self._back_canvas,
                                     text="Start", command=self.__start_event,
+                                    width=40, height=20,
+                                    background="grey"
                                     )
         
         self._start_button.place(x=100, y=40)
         self._window.mainloop()
 
     def __start_event(self):
-        """Start the server, create a server bl object, handle gui elements"""
+        """Start the node_node, create a node_node bl object, handle gui elements"""
 
         self._start_button.config(state="disabled")
         
         ip = DEFAULT_IP
         port = 13333
 
-        self._server = NodeBL(ip, port)
+        self._node = NodeBL(ip, port)
         
-        if self._server:
-            if self._server.get_success():
-                server_handle_thread = threading.Thread(target=self._server.server_process)
-                server_handle_thread.start()
+        if self._node:
+            if self._node.get_success():
+                node_node_handle_thread = threading.Thread(target=self._node.Node_process)
+                node_node_handle_thread.start()
             else:
-                messagebox.showerror("Error on Start", self._server.get_last_error())
+                messagebox.showerror("Error on Start", self._node.get_last_error())
 n = NodeGUI()
         
 

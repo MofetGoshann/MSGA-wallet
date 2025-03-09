@@ -271,40 +271,47 @@ def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_h
     INSERT INTO blocks VALUES {block_header}
     ''') 
     cursorp.execute(f'''
-    SELECT * FROM transactions WHERE block_id={header_tuple[0]}
+    SELECT * FROM transactions
     ''')     
     
     translist = cursorp.fetchall()
+    if len(translist)==0: # if no transactions
+        conn.commit()
+        return 
     translist = [(header_tuple[0],) + row for row in translist] # aDdiNg tHe BloCk Id xDdDD
 
 
     cursor.executemany(f"INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?,?)", translist) # insert the transactions into the local blockchain 
-    # commit everything
     
+    #delete all the values from the pending database
     cursorp.execute(f'''
     DELETE FROM transactions
     ''') 
     cursorp.execute(f'''
     DELETE FROM balances
     ''') 
+
+    # commit everything
     conn.commit()
     connp.commit()
 
-def send_mined(header: str, skt :socket, conn) -> bool:
+def send_mined(header: str, skt :socket, pend_conn) -> bool:
     '''
     sends a mined blocks transactions
     returns true if sent all without problems
     false if failed to send
     '''
-    cursor:sqlite3.Cursor = conn.cursor()
+    cursor:sqlite3.Cursor = pend_conn.cursor()
     #getting the block header
     try:
         b_id = ast.literal_eval(header)[0]
         print(b_id)
         cursor.execute(f'''
-        SELECT * FROM transactions WHERE block_id = {b_id}
+        SELECT * FROM transactions 
         ''')
         trans_list = cursor.fetchall()
+        print(trans_list)
+
         if len(trans_list)!=0: # if valid
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type

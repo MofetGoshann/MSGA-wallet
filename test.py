@@ -107,13 +107,16 @@ print(num.encode())
 
 conn = sqlite3.connect(f'databases/Node/blockchain.db')
 cursor = conn.cursor()
-cursor.execute('''
-SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
-''')
 
-g = cursor.fetchone()[0]
+data = {
+    "blocks": 0,   
+    "sum": 0.0     
+}
 
-print(g)
+# Save the data to a JSON file
+with open("timesum.json", "w") as json_file:
+    json.dump(data, json_file, indent=4)
+
 
 
 

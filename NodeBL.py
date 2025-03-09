@@ -63,9 +63,17 @@ class NodeBL:
         self._mutex = threading.Lock()
         self._diff = 0
         self.__lastb = 0
-        self.__timesum = 0
+        self.__timedict = {"blocks": 0 ,"sum": 0.0, "diff":0}
+        
+        with open("timesum.json", "r") as json_file:
+            loaded_data = json.load(json_file)
+
+        self.__timedict.update(loaded_data)
+
         self._conn = sqlite3.connect(f'databases/Node/blockchain.db')
-        with open('LogFile.log', 'w'):
+        self.__on_start() # update the 
+
+        with open('LogFile.log', 'w'): # open the log file
             pass
 
         self._last_error = ""
@@ -80,8 +88,6 @@ class NodeBL:
             self._Node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._Node_socket.bind((ip, port))
 
-            self.__on_start()
-            self.Node_process()
             # Return on success
             return True
 
@@ -99,6 +105,7 @@ class NodeBL:
     def Node_process(self) -> bool:
 
         try:
+
             self.__Node_running_flag = True
 
             self._Node_socket.listen()  # listen for clients
@@ -254,18 +261,20 @@ class NodeBL:
                     ist = res[3]
                     (suc,  bl_id) =  recieve_block(res[1], conn, sock, ist)
                     if suc: # if recieved block successfully
-                        self.__timesum+=float(res[2])
-                        print("saved")
+                        self.__timedict["blocks"]+=1
+                        self.__timedict["sum"]+=res
+
                         if bl_id%5==0: # adjust the difficulty
-                            avg = self.__timesum/5
+                            avg = self.__timedict["sum"]/5
                             self.calculate_diff(avg)
-                            self.__timesum = 0
-                        print(self.__lastb)
-                        self.__lastb = self.__lastb + 1
+                            self.__timedict["blocks"]= 0 
+                            self.__timedict["sum"]= 0.0                     
+                        
                         self.calculate_balik(self.__lastb, conn)
                         
                         sock.send(format_data(SAVEDBLOCK + ">" + str(self._diff)).encode())
 
+                        self.__lastb = self.__lastb + 1
                         for session in self._sessionlist:
                             #retransmit the block to all
                             skt=session.getsocket()
@@ -408,23 +417,26 @@ class NodeBL:
 
     def calculate_diff(s, m_time):
         if m_time>300:
-            s._diff-=2
+            s.__timedict["diff"]-=2
         
         if m_time>90:
-            s._diff-=1
+            s.__timedict["diff"]-=1
         
         if m_time<40:
-            s._diff+=1
+            s.__timedict["diff"]+=1
     
     def __on_start(s):
         cursor = s._conn.cursor()
         cursor.execute('''
         SELECT block_id, difficulty FROM blocks ORDER BY block_id DESC LIMIT 1
         ''')
+        
         res = cursor.fetchone()
         if res:
             s.__lastb, s._diff= res 
-            print(s.__lastb, s._diff)
+            write_to_log(f"Current block is {s.__lastb}, with the difficulty of {s._diff}")
+        
+
         
         
         

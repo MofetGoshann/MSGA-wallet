@@ -181,9 +181,11 @@ class Miner:
             self._socket_obj.settimeout(3) # set a timeout for recievedata
 
             self.__recieved_message = self.__receive_data() # update 
-            
-            msg = self.__recieved_message
+              
+            msg = self.__recieved_message # for simplicity
 
+            write_to_log(f" Miner / received from Node : {msg}")  
+            # log in stuff
             """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
@@ -265,7 +267,7 @@ class Miner:
         trans_list :list[tuple]= cursor.fetchall()
 
         for t in trans_list:
-            if calculate_balik_one(str(t), s._conn)[0]==False:
+            if calculate_balik_one(str(t), conn)[0]==False:
                 break
 
 
@@ -345,7 +347,7 @@ class Miner:
             diff = s.__diff
             merkle_root = s.build_merkle_tree(connp) # build the root
             ist = "1"
-            if merkle_root==hashex("0"*64):
+            if merkle_root==hashex("0"*64): # if the root is zeros, no transactions in the block
                 ist="2"
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
@@ -372,7 +374,7 @@ class Miner:
                     full_block_header = f"({thisb}, '{hash}', '{p_hash[0]}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
                     mine_time = time.time() - start_time
                     
-                    return full_block_header, mine_time[:5], ist # return the header with the hash
+                    return full_block_header, str(round(mine_time, 2)), ist # return the header with the hash
 
                 else:
                     nonce+=1 # increase the nonce
@@ -394,26 +396,33 @@ class Miner:
                 ermsg = result[1]
             
             else: # mined successfully
-                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+str(result[1]) + ">"+ result[2]).encode()) # broadcast to everyone
+                write_to_log(f"Sent the block {s.__lastb+1} to node ")
+                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1]+ ">"+ result[2]).encode()) # broadcast to everyone
                 #stall till got confirmation
                 res = send_mined(result[0], s._socket_obj, pend_conn)
                 if res[0]==True:
+                    # wait for confirmation from server , then save the block
                     start_time = time.time()
 
                     while time.time() - start_time < 3:
                         if s.__recieved_message.startswith(SAVEDBLOCK):
-                            s.__diff = s.__recieved_message.split(">")[1]
+                            s.__diff = int(s.__recieved_message.split(">")[1])
                             break
                         time.sleep(0.1)
 
-                    if time.time() - start_time >3:
+                    if time.time() - start_time >3: 
                         write_to_log(" Miner / Didnt recieve confirmation from node on mined block")
                         s._last_error = " Error in _always_mine func; Didnt recieve confirmation from node on mined block"
-                        raise Exception()
+                        raise Exception(TimeoutError)
+                    
                     
                     update_mined_block(conn, pend_conn,result[0]) # update the transactions in local chain
 
-                    s.update_balances() # update the balances
+                    if result[2]=="1": # update balances only if there are transactions in the block
+                        s.update_balances(conn) # update the balances
+                        
+                    s.__lastb=s.__lastb+1 # update the last block
+                    write_to_log(f"Successully mined the block {s.__lastb}") # log
                 else:
                     s.disconnect()
     

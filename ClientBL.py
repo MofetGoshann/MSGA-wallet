@@ -1,6 +1,7 @@
 
 import threading 
 from protocol import *
+from Client_protocol import *
 from hashlib import sha256
 import hashlib
 import ecdsa

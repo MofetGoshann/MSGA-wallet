@@ -262,13 +262,18 @@ class NodeBL:
                     (suc,  bl_id) =  recieve_block(res[1], conn, sock, ist)
                     if suc: # if recieved block successfully
                         self.__timedict["blocks"]+=1
-                        self.__timedict["sum"]+=res
+                        self.__timedict["sum"]+=res[2]
 
-                        if bl_id%5==0: # adjust the difficulty
+                        if self.__timedict["blocks"]%5==0: # adjust the difficulty
                             avg = self.__timedict["sum"]/5
                             self.calculate_diff(avg)
+                            #reset the counters for difficulty
                             self.__timedict["blocks"]= 0 
                             self.__timedict["sum"]= 0.0                     
+                        
+                        with open("timesum.json", "w") as json_file:# update the json
+                            json.dump(self.__timedict, json_file, indent=4)
+
                         
                         self.calculate_balik(self.__lastb, conn)
                         

@@ -6,6 +6,7 @@ from hashlib import sha256
 from hashlib import blake2s
 from ecdsa import ecdsa, VerifyingKey, NIST256p
 from ecdsa.util import sigencode_string, sigdecode_string
+import ecdsa
 import binascii
 import base64
 import sqlite3
@@ -151,3 +152,22 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
         #log the exception
         write_to_log(f" protocol / couldnt save the block header,type {typpe}; {e}")
         return False
+
+def create_keys():
+    private_key = ecdsa.SigningKey.generate(NIST256p)
+    public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
+    
+    return private_key, public_key
+
+def address_from_key(public_key:bytes):
+    hexedpub = binascii.hexlify(public_key.to_string("compressed"))
+    
+    firsthash = hashlib.sha256(hexedpub).digest()
+    secdhash = hashlib.blake2s(firsthash, digest_size=16)
+
+    checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
+
+    full_address = "RR" + secdhash.hexdigest() + checksum
+
+def check_address(address:str):
+    

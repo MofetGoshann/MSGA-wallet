@@ -108,17 +108,24 @@ print(num.encode())
 conn = sqlite3.connect(f'databases/Node/blockchain.db')
 cursor = conn.cursor()
 
-data = {
-    "blocks": 0,   
-    "sum": 0.0     
-}
+def create_keys():
+    private_key =SigningKey.generate(NIST256p)
+    public_key: VerifyingKey = private_key.get_verifying_key()
+    
+    return private_key, public_key
 
-# Save the data to a JSON file
-with open("timesum.json", "w") as json_file:
-    json.dump(data, json_file, indent=4)
+def address_from_key(public_key:bytes):
+    hexedpub = binascii.hexlify(public_key.to_string("compressed"))
+    
+    firsthash = hashlib.sha256(hexedpub).digest()
+    secdhash = hashlib.blake2s(firsthash, digest_size=16)
 
+    checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
 
-
+    full_address = "RR" + secdhash.hexdigest() + checksum
+    
+    return full_address
+print(len(address_from_key(create_keys()[1])))
 
 
 '''

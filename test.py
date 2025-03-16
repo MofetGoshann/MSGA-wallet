@@ -1,5 +1,9 @@
 from hashlib import sha256
 import hashlib
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 import base64
 import ecdsa
 from ecdsa import SigningKey, NIST256p, VerifyingKey
@@ -13,6 +17,7 @@ import json
 import os
 import sqlite3
 from protocol import *
+import bip39
 '''
 key = SigningKey.generate(curve=NIST256p)
 public = key.get_verifying_key()
@@ -109,25 +114,81 @@ conn = sqlite3.connect(f'databases/Node/blockchain.db')
 cursor = conn.cursor()
 
 def create_keys():
-    private_key =SigningKey.generate(NIST256p)
-    public_key: VerifyingKey = private_key.get_verifying_key()
-    
-    return private_key, public_key
+    entropy = os.urandom(16)
+    mnemonic = bip39.encode_bytes(entropy)
+    print(mnemonic)
+    seed = bip39.phrase_to_seed(mnemonic)
 
-def address_from_key(public_key:bytes):
-    hexedpub = binascii.hexlify(public_key.to_string("compressed"))
-    
-    firsthash = hashlib.sha256(hexedpub).digest()
-    secdhash = hashlib.blake2s(firsthash, digest_size=16)
+    private_key_bytes = hashlib.sha256(seed).digest()
+    private_key = SigningKey.from_string(seed, NIST256p)
 
-    checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
-
-    full_address = "RR" + secdhash.hexdigest() + checksum
-    
-    return full_address
-print(len(address_from_key(create_keys()[1])))
+    return private_key, seed.decode()
 
 
+def encrypt_data(data: bytes, password: str) -> bytes:
+    # Generate a salt (random data for key derivation)
+    salt = os.urandom(16)
+
+    # Derive a key from the password using PBKDF2HMAC
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
+    # Create a Fernet object for encryption
+    fernet = Fernet(key)
+
+    # Encrypt the data
+    encrypted_data = fernet.encrypt(data)
+
+    # Return the salt and encrypted data (both are needed for decryption)
+    print(salt + encrypted_data)
+    return salt + encrypted_data
+
+# Step 3: Decrypt the private key
+def decrypt_data(encrypted_data: bytes, password: str) -> bytes:
+    # Extract the salt and encrypted data
+    salt = encrypted_data[:16]
+    encrypted_data = encrypted_data[16:]
+
+    # Derive the key using the same password and salt
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
+    # Create a Fernet object for decryption
+    fernet = Fernet(key)
+
+    # Decrypt the data
+    decrypted_data = fernet.decrypt(encrypted_data)
+    return decrypted_data
+
+def create_seed(password: str, user:str):
+    key_seed = create_keys()
+
+    seed= key_seed[1]
+    priv_key_bytes = key_seed[0].to_string()
+    enc_priv = encrypt_data(priv_key_bytes, password)
+
+    with open(user, "wb") as file:
+        file.write(enc_priv)
+    print(seed)
+    return seed
+
+with open("user", "rb") as file:
+    enc_key = file.read()
+
+t = decrypt_data(enc_key, "pass")
+print(t)
 '''
 trial = ""
 sum=0

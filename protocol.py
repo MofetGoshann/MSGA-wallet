@@ -7,6 +7,11 @@ from hashlib import sha256
 from hashlib import blake2s
 from ecdsa import ecdsa, VerifyingKey, NIST256p
 from ecdsa.util import sigencode_string, sigdecode_string
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+import base64
 import binascii
 import base64
 import sqlite3

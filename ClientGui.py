@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from ClientBL import ClientBL
 from protocol import *
+from PIL import Image, ImageTk
 #  endregion
 
 
@@ -18,7 +19,7 @@ COLOR_DARK_GRAY: str = "#808080"
 COLOR_LIGHT_GRAY: str = "#c0c0c0"
 
 BUTTON_IMAGE: str = "Images\\gui_button.png"
-BACKGROUND_IMAGE: str = "Images\\gui_bg_small.png"
+BACKGROUND_IMAGE = Image.open("Images\\Bliss.png").resize((960, 540), Image.Resampling.LANCZOS)
 
 
 class ClientGUI:
@@ -32,8 +33,8 @@ class ClientGUI:
         self._back_img = None
         self._btn_img = None
 
-        self._back_img_size = [1000, 500]
-        self._btn_img_size = [100, 40]
+        self._back_img_size = [0, 0]
+        self._btn_img_size = [0, 0]
 
         self._back_canvas = None
 
@@ -58,6 +59,7 @@ class ClientGUI:
 
         self._window.title("Client GUI")
 
+        self.__setup_images()
         # Disable resize to fit with the background image
         self._window.resizable(False, False)
         self._window.geometry(f"{self._back_img_size[0]}x{self._back_img_size[1]}")
@@ -66,6 +68,7 @@ class ClientGUI:
         # our background image
         self._back_canvas = Canvas(self._window, width=self._back_img_size[0], height=self._back_img_size[1])
         self._back_canvas.pack(fill='both', expand=True)
+        self._back_canvas.create_image(0, 0, anchor="nw", image=self._back_img)
 
         # In-Application title
         self._back_canvas.create_text(20, 30, text="Client", font=FONT_TITLE, fill=COLOR_DARK_GRAY, anchor="nw")
@@ -73,6 +76,18 @@ class ClientGUI:
         # Create the ui elements
         self.__create_elements()
     
+
+    def __setup_images(self):
+        """
+        Setup client gui images and save their data
+        """
+        # Load images
+        self._back_img = ImageTk.PhotoImage(BACKGROUND_IMAGE)
+        #self._btn_img = PhotoImage(file=BUTTON_IMAGE)
+
+        # Save their vectors
+        self._back_img_size = [self._back_img.width(), self._back_img.height()]
+        #self._btn_img_size = [self._btn_img.width(), self._btn_img.height()]
 
     def __create_elements(self):
         """

@@ -100,13 +100,13 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
             ''')
     conn.commit()
     if tr=="2": # the block has no transactions
-        return True, ""
+        return True, id
     
     success =  recieve_trs(skt, conn) # store the transactions of the block
     if success:
         write_to_log(f"Successfully saved the block {id} and its transactions") # log 
 
-        return True, "" # if all saved successfully
+        return True, id # if all saved successfully
     
     else: #if all saved unsuccessfully
         #delete all the wrong saved data
@@ -295,7 +295,7 @@ def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_h
     conn.commit()
     connp.commit()
 
-def send_mined(header: str, skt :socket, pend_conn) -> bool:
+def send_mined(header: str, skt :socket, pend_conn, lastb) -> bool:
     '''
     sends a mined blocks transactions
     returns true if sent all without problems
@@ -305,7 +305,7 @@ def send_mined(header: str, skt :socket, pend_conn) -> bool:
     #getting the block header
     try:
         b_id = ast.literal_eval(header)[0]
-        print(b_id)
+
         cursor.execute(f'''
         SELECT * FROM transactions 
         ''')
@@ -315,7 +315,7 @@ def send_mined(header: str, skt :socket, pend_conn) -> bool:
         if len(trans_list)!=0: # if valid
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
-                t = str(tr)
+                t = f"({lastb}, " + str(tr)[1:] # adding the block id to the start of all transactions
                 skt.send(format_data(t).encode())
             skt.send(format_data(BLOCKSTOPMSG).encode())
 

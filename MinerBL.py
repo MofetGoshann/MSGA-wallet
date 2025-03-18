@@ -1,5 +1,6 @@
 from protocol import *
 from Miner_protocol import *
+import select
 import socket
 import ecdsa
 from ecdsa import SigningKey, NIST256p
@@ -53,7 +54,7 @@ class Miner:
         self.__user = username
         self.__lastb = None
         self.__mining = False
-        self.__diff = 5
+        self.__diff = 0
         self.__connected = False
         self._conn = sqlite3.connect(f'databases/Miner/blockchain.db')
         self._pend_conn  = sqlite3.connect(f'databases/Miner/pending.db')
@@ -85,16 +86,19 @@ class Miner:
                 write_to_log(" Miner / Timed out on chainupdate")
                 self.disconnect()
                 return False
+            
             self.__lastb = int(self.__recieved_message.split(">")[1])
+            self.__diff = int(self.__recieved_message.split(">")[2])
+            print(self.__diff)
             #self.__diff = self.__recieved_message.split(">")[2]
 
 
         
-            listening_thread = threading.Thread(target=self._always_mine(), args=())
-            listening_thread.start()
+            mining_thread = threading.Thread(target=self._always_mine(), args=())
+            mining_thread.start()
             
             # Log the data
-            write_to_log(f" 路 Miner 路 {self._socket_obj.getsockname()} connected")
+            write_to_log(f" Miner / {self._socket_obj.getsockname()} connected")
 
             # Return on success
             return True
@@ -169,8 +173,19 @@ class Miner:
             write_to_log(f" Miner / failed to receive from server : {e}")
             self._last_error = f"An error occurred in miner bl [receive_data function]\nError : {e}"
             return ""
-            
-            
+        
+    def __time_recieve(self, time: int):
+        try:
+            self._socket_obj.settimeout(time)
+
+            ready, _, _ = select.select([self._socket_obj], [], [], time)
+
+            if ready:
+                return self.__receive_data()
+
+            return ""
+        except Exception as e:
+            return str(e)
     
     def __always_listen(self):
         """always recieve messages from server primarily to get kick message"""
@@ -178,13 +193,12 @@ class Miner:
         self.__connected = True
 
         while self.__connected:
-            self._socket_obj.settimeout(3) # set a timeout for recievedata
-
+            time.sleep(0.05)
             self.__recieved_message = self.__receive_data() # update 
               
             msg = self.__recieved_message # for simplicity
-
-            write_to_log(f" Miner / received from Node : {msg}")  
+            if msg!="":
+                write_to_log(f" Miner / Received from Node : {msg}")  
             # log in stuff
             """
             if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
@@ -230,11 +244,11 @@ class Miner:
                     self._socket_obj.send((format_data(msg).encode()))
                 
             if msg.startswith(CHAINUPDATING): # if updating the local chain
-                print("dsfsdf")
+                self.__diff = msg.split(">")[2]
                 result = saveblockchain(msg, self._socket_obj, conn)
                 if result!=False:
                     self.__lastb = result
-                    print("gutttt")
+                    write_to_log(f" Miner / Updated chain, diff: {self.__diff}")
                 
                 else:
                     self._last_error = "Cannot connect to blockchain"
@@ -281,7 +295,7 @@ class Miner:
         if len(trs)==0: # if no transactions
             return hashex("0"*64)
         
-        print(trs)
+
         hashes = [hashex(hashex(str(t))) for t in trs]
 
         # If only one transaction, the Merkle Root is its hash
@@ -339,11 +353,12 @@ class Miner:
             s._last_error = f"Error in __operate_transaction() func ; {e}"
             
             
-    def __start_mining(s, conn, connp):
-        chaincursor = conn.cursor()
-        
-        try:
+    def __start_mining(s, conn : sqlite3.Connection, connp):
 
+        chaincursor = conn.cursor()
+        print(f" Miner / Mining block {s.__lastb+1} ", end="", flush=True)
+        try:
+            
             diff = s.__diff
             merkle_root = s.build_merkle_tree(connp) # build the root
             ist = "1"
@@ -361,7 +376,8 @@ class Miner:
 
             start_time = time.time()
             while s.__mining:
-                if nonce%100000==0: # every 100000 calculations update the time
+                if nonce%500000==0: # every 100000 calculations update the time
+                    print(".", end="", flush=True)
                     timestamp = datetime.now().strftime(tm_format) #  
                     strheader = f"({str(thisb)}, '{str(p_hash[0])}', '{str(merkle_root)}', '{str(timestamp)}', {str(diff)}, "
                 
@@ -373,10 +389,10 @@ class Miner:
                     # mining=False
                     full_block_header = f"({thisb}, '{hash}', '{p_hash[0]}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
                     mine_time = time.time() - start_time
-                    
+                    print("\n")
                     return full_block_header, str(round(mine_time, 2)), ist # return the header with the hash
 
-                else:
+                else: 
                     nonce+=1 # increase the nonce
 
             return False, "Not mined fast enough"
@@ -390,7 +406,9 @@ class Miner:
     def _always_mine(s):
         conn = sqlite3.connect(f'databases/Miner/blockchain.db')
         pend_conn = sqlite3.connect(f'databases/Miner/pending.db')
+
         while s.__connected:
+
             result = s.__start_mining(conn, pend_conn) #  header, time, ist
             if result[0]==False: # if block came earlier
                 ermsg = result[1]
@@ -399,7 +417,7 @@ class Miner:
                 write_to_log(f"Sent the block {s.__lastb+1} to node ")
                 s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1]+ ">"+ result[2]).encode()) # broadcast to everyone
                 #stall till got confirmation
-                res = send_mined(result[0], s._socket_obj, pend_conn)
+                res = send_mined(result[0], s._socket_obj, pend_conn, s.__lastb+1)
                 if res[0]==True:
                     # wait for confirmation from server , then save the block
                     start_time = time.time()
@@ -415,16 +433,17 @@ class Miner:
                         s._last_error = " Error in _always_mine func; Didnt recieve confirmation from node on mined block"
                         raise Exception(TimeoutError)
                     
-                    
+                    s.__recieved_message = ""
                     update_mined_block(conn, pend_conn,result[0]) # update the transactions in local chain
 
                     if result[2]=="1": # update balances only if there are transactions in the block
                         s.update_balances(conn) # update the balances
                         
                     s.__lastb=s.__lastb+1 # update the last block
-                    write_to_log(f"Successully mined the block {s.__lastb}") # log
+                    write_to_log(f"Miner / Successully mined and broadcasted the block {s.__lastb}") # log
                 else:
                     s.disconnect()
+        print("be")
     
    
 

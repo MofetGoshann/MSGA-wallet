@@ -121,7 +121,6 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
         success =  recieve_trs(skt, conn) # store the transactions of the block
         if success:
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 
-            conn.close()
             return True, id # if all saved successfully
         
         else: #if all saved unsuccessfully
@@ -165,12 +164,13 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
                 INSERT INTO transactions 
                 VALUES {transaction}
                 ''')
-                conn.commit()
+                
+        conn.commit()
 
         return True
     except Exception as e:
         #handle failure
-        write_to_log(f" protocol / error in saving/recieving the transactions of the block ; {e}")
+        write_to_log(f" NodeP / Error in saving/recieving the transactions of the block ; {e}")
         return False
 
 def verify_transaction(transmsg_full: str, conn):

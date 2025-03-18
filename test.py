@@ -120,9 +120,9 @@ def create_keys():
     seed = bip39.phrase_to_seed(mnemonic)
 
     private_key_bytes = hashlib.sha256(seed).digest()
-    private_key = SigningKey.from_string(seed, NIST256p)
+    private_key = SigningKey.from_string(private_key_bytes, NIST256p)
 
-    return private_key, seed.decode()
+    return private_key, seed.hex()
 
 
 def encrypt_data(data: bytes, password: str) -> bytes:
@@ -184,11 +184,16 @@ def create_seed(password: str, user:str):
     print(seed)
     return seed
 
-with open("user", "rb") as file:
-    enc_key = file.read()
+trans_no_sig = "(3, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC')"
+p_key = create_keys()[0]
+signature = p_key.sign_deterministic(trans_no_sig.encode(), hashfunc=sha256 ,sigencode=sigencode_string)
+pub_key = p_key.get_verifying_key()
 
-t = decrypt_data(enc_key, "pass")
-print(t)
+hexedpub = binascii.hexlify(pub_key.to_string("compressed")).decode() # hexed public key
+hexedsig = binascii.hexlify(signature).decode() # hexed signature
+
+wholetrans = f"(3, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC', {hexedsig}, {hexedpub})"
+print(wholetrans)
 '''
 trial = ""
 sum=0

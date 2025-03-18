@@ -61,7 +61,6 @@ class NodeBL:
         self.__Node_running_flag: bool = False
         self._receive_callback = None
         self._mutex = threading.Lock()
-        self._diff = 0
         self.__lastb = 0
         self.__timedict = {"blocks": 0 ,"sum": 0.0, "diff":0}
         
@@ -136,11 +135,11 @@ class NodeBL:
 
                     
 
-                    write_to_log(f"  Node    · active connection {threading.active_count() - 2}")
+                    write_to_log(f" Node / Active connection {threading.active_count() - 2}")
 
             # Close Node socket on Node end
             self._Node_socket.close()
-            write_to_log("  Node    · closed")
+            write_to_log(" Node / Closed")
 
             # Everything went without any problems
             self._Node_socket = None
@@ -150,7 +149,7 @@ class NodeBL:
         except Exception as e:
 
             # Handle failure
-            write_to_log(f"  Node    · failed to handle a message; {e}")
+            write_to_log(f" Node / Failed to handle a message; {e}")
 
             self._last_error = f"An error occurred in Node bl [Node_process function]\nError : {e}"
 
@@ -181,7 +180,7 @@ class NodeBL:
         conn = sqlite3.connect(f'databases/Node/blockchain.db')
 
         # This code run in separate for every client
-        write_to_log(f"  Node   new client : {user} connected")
+        write_to_log(f"Node / New client : {user} connected")
         
 
         #if self._clientstablecallback is not None: # insert client to gui table
@@ -195,7 +194,7 @@ class NodeBL:
 
             if success:
                 # if we managed to get the message :
-                write_to_log(f"  Node    · received from client : {user} - {msg}")
+                write_to_log(f" Node / Received from client : {user} - {msg}")
 
                 #self._mutex.acquire()
                 #try:
@@ -226,8 +225,8 @@ class NodeBL:
                         for session in self._sessionlist:
                             if(session.gettype()==2):
                                 #retransmit the transacion to the miners
-                                print("sent")
                                 session.getsocket().send(format_data(msg+"|"+user).encode())
+                        write_to_log("Node / Broadcasted block")
                     
     
     def __handle_miner(self, miner_session: Session):
@@ -237,7 +236,7 @@ class NodeBL:
         conn = sqlite3.connect(f'databases/Node/blockchain.db')
 
 
-        write_to_log(f"  Node   new miner : {user} connected")
+        write_to_log(f"Node / New miner : {user} connected")
         
         connected = True
 
@@ -262,7 +261,7 @@ class NodeBL:
                     (suc,  bl_id) =  recieve_block(res[1], conn, sock, ist)
                     if suc: # if recieved block successfully
                         self.__timedict["blocks"]+=1
-                        self.__timedict["sum"]+=res[2]
+                        self.__timedict["sum"]+=float(res[2])
 
                         if self.__timedict["blocks"]%5==0: # adjust the difficulty
                             avg = self.__timedict["sum"]/5
@@ -277,7 +276,7 @@ class NodeBL:
                         
                         self.calculate_balik(self.__lastb, conn)
                         
-                        sock.send(format_data(SAVEDBLOCK + ">" + str(self._diff)).encode())
+                        sock.send(format_data(SAVEDBLOCK + ">" + str(self.__timedict["diff"])).encode())
 
                         self.__lastb = self.__lastb + 1
                         for session in self._sessionlist:
@@ -285,16 +284,18 @@ class NodeBL:
                             skt=session.getsocket()
                             if session.gettype()==2 and session.getusername()!=user: # to the miners
                                 send_to_miner(msg, self._diff,sock, conn)
+                                write_to_log(f" Node / sent the block to {session.getusername()}")
 
                             elif session.gettype()==1: # to clients
                                 send_block(bl_id, sock, conn)
+                                write_to_log(f" Node / sent the block to {session.getusername()}")
                             
-                            write_to_log(f" Node / sent the block to {session.getusername()}")
                     else:
                         write_to_log(f' Node / Couldnt recieve block from {user}; {bl_id}')
 
                 elif msg.startswith(CHAINUPDATEREQUEST):
-                    self.__sendupdatedchain(sock, msg, conn)     
+                    if self.__sendupdatedchain(sock, msg, conn)==True:
+                        write_to_log(" Node / Updated: " + user)  
 
                 if msg.startswith(GOOD_TRANS_MSG): # send the confirmation to the client(sender)
                     user_to_send = msg.split(">")[1]    
@@ -304,7 +305,7 @@ class NodeBL:
                         us=session.getusername()
                         if(us==user_to_send):
                             session.getsocket().send(format_data(GOOD_TRANS_MSG).encode())
-                            write_to_log(f" Node / sent confirmation to: {user_to_send}")
+                            write_to_log(f" Node / Sent confirmation to: {user_to_send}")
                 
 
             else:
@@ -336,7 +337,7 @@ class NodeBL:
                 if len(id_list)==1: # if the senders last block is the actual last block send confirmation
 
                     if int(id)==id_list[0][0]: # if last block the same
-                        skt.send(format_data("UPDATED" + ">" + id).encode())
+                        skt.send(format_data("UPDATED" + f">{id}>{s.__timedict['diff']}").encode())
                         return True
                     
                     # if its the only block
@@ -347,11 +348,11 @@ class NodeBL:
                         write_to_log("Failed to update chain")
                         return False
 
-                    skt.send(format_data("UPDATED" + ">" + str(id_list[0][0])).encode())
+                    skt.send(format_data("UPDATED" + ">" + str(id_list[0][0])+f">{s.__timedict['diff']}").encode())
                     return True
                 
                 id_list = id_list[1:]
-                skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
+                skt.send(format_data(CHAINUPDATING+f">{len(id_list)}>{s.__timedict['diff']}").encode())
 
                 for b_id in id_list: # send all the blocks the member is missing 
                     
@@ -367,8 +368,9 @@ class NodeBL:
                         elif msg==FAILEDTOSAVEBLOCK:
                             raise Exception
                     '''
-                skt.send(format_data("UPDATED" + ">" + str(b_id[0])).encode())
-                print("aufff")
+                    
+                skt.send(format_data("UPDATED" + ">" + str(b_id[0]) + f">{s.__timedict['diff']}").encode())
+                
                 return True
             else: # if sent if is wrong
                 print("afffffffffffffs")
@@ -401,7 +403,7 @@ class NodeBL:
             ''')
 
             transes = cursor.fetchall()
-            print(transes)
+
             if len(transes)==0:
                 return True
 
@@ -421,25 +423,23 @@ class NodeBL:
             return False
 
     def calculate_diff(s, m_time):
-        if m_time>300:
-            s.__timedict["diff"]-=2
         
-        if m_time>90:
+        if m_time>120:
             s.__timedict["diff"]-=1
         
-        if m_time<40:
+        if m_time<30:
             s.__timedict["diff"]+=1
     
     def __on_start(s):
         cursor = s._conn.cursor()
         cursor.execute('''
-        SELECT block_id, difficulty FROM blocks ORDER BY block_id DESC LIMIT 1
+        SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
         ''')
         
         res = cursor.fetchone()
         if res:
-            s.__lastb, s._diff= res 
-            write_to_log(f"Current block is {s.__lastb}, with the difficulty of {s._diff}")
+            s.__lastb = res[0]
+            write_to_log(f"Current block is {s.__lastb}, with the difficulty of {s.__timedict['diff']}")
         
 
         

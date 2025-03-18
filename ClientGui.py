@@ -5,9 +5,9 @@ from ClientBL import ClientBL
 from protocol import *
 from PIL import Image, ImageTk
 import PyQt5
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout
 from PyQt5.QtGui import QPixmap, QIcon, QImage
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 import sys
 #  endregion
 
@@ -23,8 +23,8 @@ COLOR_BLACK: str = "#000000"
 COLOR_DARK_GRAY: str = "#808080"
 COLOR_LIGHT_GRAY: str = "#c0c0c0"
 
-START_IMAGE: str = "C:/Users/User/Documents/MSGA-wallet-main/Images/start_button.png"
-BACKGROUND_IMAGE = "C:/Users/User/Documents/MSGA-wallet-main/Images/Bliss.png"
+START_IMAGE: str = "Images/start_button.png"
+BACKGROUND_IMAGE = "Images/Bliss.png"
 
 
 class ClientGUI:
@@ -65,15 +65,43 @@ class ClientGUI:
 
         self._window.setWindowTitle("MSGA Wallet")
         
+        self._window.setWindowFlags(Qt.FramelessWindowHint)
+
+        self._central_widget = QWidget(self._window)
+        self._window.setCentralWidget(self._central_widget)
 
         self.__setup_images()
         # Disable resize to fit with the background image
-        self._window.setGeometry(100, 100, self._back_img_size[0], self._back_img_size[1]+30)  # Set window size and position
-        self._window.setFixedSize(self._back_img_size[0], self._back_img_size[1]+30)
+        self._window.setGeometry(100, 100, self._back_img_size[0], self._back_img_size[1]+self._start_img_size[1]+30)  # Set window size and position
+        self._window.setFixedSize(self._back_img_size[0], self._back_img_size[1]+self._start_img_size[1]+30)
         
         # Now we need to set up the background of our window with
         # our background image
 
+        self._window.setStyleSheet("""
+            QWidget {
+                background-color: #ece9d8;
+                border: 2px solid #000080;
+                border-radius: 4px;
+            }
+            QLabel {
+                font: bold 12px;
+                color: #000080;
+            }
+            QPushButton {
+                background-color: #ece9d8;
+                border: 1px solid #000080;
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
+
+
+
+        
         self._back_label = QLabel(self._window)
         
         pixmap = QPixmap(BACKGROUND_IMAGE)
@@ -83,9 +111,9 @@ class ClientGUI:
         self._back_label.setPixmap(resized_pixmap)
         self._back_label.setAlignment(Qt.AlignCenter)
         
-        self._back_label.setGeometry(0,0,self._back_img_size[0], self._back_img_size[1])
+        self._back_label.setGeometry(0,30,self._back_img_size[0], self._back_img_size[1])
         # In-Application title
-
+        
         # Create the ui elements
         self.__create_elements()
     
@@ -116,10 +144,66 @@ class ClientGUI:
         
         # Start 
         
-        self._start_button = QPushButton(self._window)
-        self._start_button.setIcon()  # Set icon size to default button size
-        self._start_button.setGeometry(0, 560, self._start_img_size[0], self._start_img_size[1])  # Set button position and size
+        self._start_button = QPushButton(self._central_widget)
+        self._start_button.setIcon(self._start_icon)  # Set icon size to default button size
+        self._start_button.setGeometry(2, self._back_img_size[1]+28, self._start_img_size[0], self._start_img_size[1])  # Set button position and size
+        self._start_button.setIconSize(QSize(self._start_img_size[0],self._start_img_size[1]))
         
+
+        self.title_bar = QWidget(self._central_widget)
+        self.title_bar.setFixedHeight(30)
+        self.title_bar.setStyleSheet("background-color: #000080;")
+
+        # Title bar layout
+        title_layout = QHBoxLayout(self.title_bar)
+        title_layout.setContentsMargins(5, 0, 5, 0)
+
+        # Title label
+        self.title_label = QLabel("My XP-Style App")
+        self.title_label.setStyleSheet("color: white; font: bold 14px;")
+        title_layout.addWidget(self.title_label)
+
+        # Minimize button
+        self.minimize_button = QPushButton("─")
+        self.minimize_button.setFixedSize(25, 25)
+        self.minimize_button.setStyleSheet("color: white")
+        title_layout.addWidget(self.minimize_button)
+
+        self.maximize_button = QPushButton("□")
+        self.maximize_button.setStyleSheet("color: white")
+        self.maximize_button.setFixedSize(25, 25)
+        title_layout.addWidget(self.maximize_button)
+
+        # Close button
+        self.close_button = QPushButton("✕")
+        self.close_button.setFixedSize(25, 25)
+        self.close_button.setStyleSheet("color: white")
+        title_layout.addWidget(self.close_button)
+
+        # Main layout
+        main_layout = QVBoxLayout(self._central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        main_layout.setSpacing(0)
+
+        main_layout.addWidget(self.title_bar)
+        main_layout.addStretch()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         # Connect
 
 

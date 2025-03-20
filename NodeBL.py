@@ -9,7 +9,6 @@ class Session: #session class
         self.__port = port
         self.__username = None
         self.__socket = sock
-        self.__updated = False
     
     
     def connectupdate(self, username:str, type:int):
@@ -25,16 +24,10 @@ class Session: #session class
     def getusername(self):
         return self.__username
     
-
-
-    def setu(s, up:bool):
-        s.__updated = up
     
-    def getu(s):
-        return s.__updated
     
     def __iter__(s):
-        s.l =  [s.__type, s.__ip, s.__port, s.__username, s.__socket, s.__updated]
+        s.l =  [s.__type, s.__ip, s.__port, s.__username, s.__socket]
         s.i = 0
         return s
     
@@ -56,12 +49,13 @@ class NodeBL:
 
         self.__ip: str = ip
         
-        self._sessionlist: list= []
+        self._sessionlist: list[Session]= []
         self._Node_socket: socket = None
         self.__Node_running_flag: bool = False
         self._receive_callback = None
         self._mutex = threading.Lock()
         self.__lastb = 0
+        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "COLR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         self.__timedict = {"blocks": 0 ,"sum": 0.0, "diff":0}
         
         with open("timesum.json", "r") as json_file:
@@ -115,7 +109,9 @@ class NodeBL:
 
                 # Use time_out function for .accept() to close thread on no need
                 connected_socket, client_addr = self.__time_accept(0.3)
-
+                logreg = receive_buffer(connected_socket)[1]
+                if logreg=="REGISTER":
+                    self.register(logreg, connected_socket)
                 # Check if we didn't time out
                 if connected_socket:
                     connectedsession: Session = Session(client_addr[0], client_addr[1], connected_socket)
@@ -171,6 +167,78 @@ class NodeBL:
         except Exception as e:
             return None, None
 
+    def register(s, msg:str, skt:socket):
+        '''
+        Create a new user and add into the databases also broadcast the addres to update everyone
+        '''
+        spl = msg.split(">")
+
+        user = spl[1]
+        pas = spl[2]
+        address = spl[3]
+        cursor = s._conn.cursor()
+
+        # check if already in
+        cursor.execute('''
+            SELECT 1 FROM users WHERE username = ?
+        ''', (user,))
+        
+        check = cursor.fetchone()
+        if check: 
+            send("Error, already registered", skt)
+            write_to_log("Denied register of "+user)
+            return False
+        
+        cursor.execute('''
+            INSERT INTO users (username, pass) VALUES (?, ?)
+        ''', (user,pas))
+
+        # get the uid
+        cursor.execute('''
+            SELECT uId FROM users WHERE username = ?
+        ''', (user))
+
+        id = cursor.fetchone()[0]
+
+
+        if not check_address(address): # validate address
+            send("Error, invalid address", skt)
+            write_to_log("Denied register of "+user)
+            return False
+        
+        for token in s.tokenlist: # adding to the balances db
+
+            cursor.execute('''
+                INSERT INTO balances (uId, address, balance, token, nonce) VALUES (?, ?, ?, ?, ?)
+            ''', (id, address, 0, token, 1))
+
+        s._conn.commit() # commit changes
+        # broadcast 
+        for session in s._sessionlist:
+            send(NEW_USER + f">{address}", session.getsocket())
+        
+        send(REG_MSG, skt)
+        return True
+
+    def login(s, msg:str, skt:socket):
+        spl = msg.split(">")
+
+        user = spl[1]
+        pas = spl[2]
+        cursor = s._conn.cursor()
+
+        cursor.execute('''
+            SELECT 1 FROM users WHERE username = ? AND pass = ?
+        ''', (user,pas))
+        
+        check = cursor.fetchone()
+
+        if check:
+            send(LOG_MSG, skt)
+            return True
+        send("Wrong username or password", skt)
+        return False
+
 
 
     def __handle_client(self, clientsession: Session):
@@ -219,13 +287,13 @@ class NodeBL:
                     trans = msg.split("|")[1]
                     suc, ermsg = verify_transaction(trans, conn)
                     if suc==False:
-                        sock.send(format_data(ermsg).encode())
+                        send(ermsg, sock)
                     else:
 
                         for session in self._sessionlist:
                             if(session.gettype()==2):
                                 #retransmit the transacion to the miners
-                                session.getsocket().send(format_data(msg+"|"+user).encode())
+                                send(msg+"|"+user, session.getsocket())
                         write_to_log("Node / Broadcasted block")
                     
     
@@ -276,7 +344,7 @@ class NodeBL:
                         
                         self.calculate_balik(self.__lastb, conn)
                         
-                        sock.send(format_data(SAVEDBLOCK + ">" + str(self.__timedict["diff"])).encode())
+                        send(SAVEDBLOCK + ">" + str(self.__timedict["diff"]), sock)
 
                         self.__lastb = self.__lastb + 1
                         for session in self._sessionlist:
@@ -304,7 +372,7 @@ class NodeBL:
                         #retransmit to the sender
                         us=session.getusername()
                         if(us==user_to_send):
-                            session.getsocket().send(format_data(GOOD_TRANS_MSG).encode())
+                            send(GOOD_TRANS_MSG, session.getsocket())
                             write_to_log(f" Node / Sent confirmation to: {user_to_send}")
                 
 
@@ -337,22 +405,22 @@ class NodeBL:
                 if len(id_list)==1: # if the senders last block is the actual last block send confirmation
 
                     if int(id)==id_list[0][0]: # if last block the same
-                        skt.send(format_data("UPDATED" + f">{id}>{s.__timedict['diff']}").encode())
+                        send("UPDATED" + f">{id}>{s.__timedict['diff']}", skt)
                         return True
                     
                     # if its the only block
-                    skt.send(format_data(CHAINUPDATING+f">{len(id_list)}").encode())
+                    send(CHAINUPDATING+f">{len(id_list)}", skt)
 
                     if send_block(id_list[0][0], skt, conn)==False:  # send the only block
                         s._last_error = " NodeBL / Couldnt update blockhain"
                         write_to_log("Failed to update chain")
                         return False
 
-                    skt.send(format_data("UPDATED" + ">" + str(id_list[0][0])+f">{s.__timedict['diff']}").encode())
+                    send("UPDATED" + ">" + str(id_list[0][0])+f">{s.__timedict['diff']}", skt)
                     return True
                 
                 id_list = id_list[1:]
-                skt.send(format_data(CHAINUPDATING+f">{len(id_list)}>{s.__timedict['diff']}").encode())
+                send(CHAINUPDATING+f">{len(id_list)}>{s.__timedict['diff']}", skt)
 
                 for b_id in id_list: # send all the blocks the member is missing 
                     
@@ -369,13 +437,12 @@ class NodeBL:
                             raise Exception
                     '''
                     
-                skt.send(format_data("UPDATED" + ">" + str(b_id[0]) + f">{s.__timedict['diff']}").encode())
+                send("UPDATED" + ">" + str(b_id[0]) + f">{s.__timedict['diff']}", skt)
                 
                 return True
             else: # if sent if is wrong
-                print("afffffffffffffs")
                 
-                skt.send(format_data(WRONGID).encode())
+                send(WRONGID, skt)
                 return False
 
         except Exception as e:

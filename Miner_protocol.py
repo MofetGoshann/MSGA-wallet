@@ -13,6 +13,22 @@ import time
 import ast
 from protocol import *
 
+def check_address(address):
+
+    if not address.startswith("RR") or len(address) != 38:
+        return False
+    
+    extracted_checksum = address[-4:]  # Last 4 characters
+    address_without_checksum = address[:-4]  # Everything except the last 4 characters
+    
+
+    secdhash_part = address_without_checksum[2:]  # Remove "RR" prefix
+    
+    secdhash_bytes = bytes.fromhex(secdhash_part)  # Convert hex to bytes
+    recomputed_checksum = hashlib.sha256(secdhash_bytes).hexdigest()[:4]
+    
+    # Step 5: Compare the checksums
+    return extracted_checksum == recomputed_checksum
 
 
 def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
@@ -22,6 +38,11 @@ def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
         if not len(transaction_tuple)==8: # if wrong len
             return False, "Wrong transaction format"
         
+        hexedpublickey = transaction_tuple[7]
+        public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
+
+        if address_from_key(public_key)!=transaction_tuple[2]:
+            return False, "Address not connected to public key"
         cursor = conn.cursor()
         amount_spent = float(transaction_tuple[4])
         token = transaction_tuple[5]
@@ -41,11 +62,11 @@ def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
             return False, "Wrong nonce"
         
         hexedsignature = transaction_tuple[6]
-        hexedpublickey = transaction_tuple[7]
+
 
         transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
         st_transaction = str(transaction)
-        public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
+        
         signature: bytes = binascii.unhexlify(hexedsignature)
     
         is_valid = public_key.verify(signature, st_transaction.encode(),sha256,sigdecode=sigdecode_string) # verifying the signature
@@ -259,6 +280,16 @@ def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in t
         write_to_log(f" MinerP / Failed to update balance after transaction ; {e}")
         return False, f" Error, failed to update balance after transaction ; {e}"
     
+def address_from_key(public_key: VerifyingKey):
+    hexedpub = binascii.hexlify(public_key.to_string("compressed"))
+
+    firsthash = hashlib.sha256(hexedpub).digest()
+    secdhash = hashlib.blake2s(firsthash, digest_size=16)
+
+    checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
+
+    full_address = "RR" + secdhash.hexdigest() + checksum
+
 def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_header:str):
     cursor = conn.cursor()
     cursorp = connp.cursor()

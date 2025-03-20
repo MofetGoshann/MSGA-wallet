@@ -113,17 +113,17 @@ def receive_buffer(my_socket: socket) -> (bool, str):
 
 
 
-def address_from_key(public_key:bytes):
-    firsthash = hashlib.sha256(public_key).digest()
-    secdhash = hashlib.blake2s(firsthash).digest()
+def address_from_key(public_key: VerifyingKey):
+    hexedpub = binascii.hexlify(public_key.to_string("compressed"))
+    
+    firsthash = hashlib.sha256(hexedpub).digest()
+    secdhash = hashlib.blake2s(firsthash, digest_size=16)
 
-    checksum = hashlib.sha256(secdhash).digest()[:4] #grabbing the dirst 4 bytes of the address
+    checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
 
-    full_address = "RR".encode() + base64.b32encode(secdhash) + checksum
+    return "RR" + secdhash.hexdigest() + checksum
 
 
-def check_address(address:bytes):
-    pass
 
 
 
@@ -196,7 +196,6 @@ def chain_on_start(type: str, skt:socket):
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
             uId INT NOT NULL,
-            address VARCHAR(64) NOT NULL,
             username VARCHAR(16) NOT NULL,
             pass VARCHAR(16) NOT NULL
             )

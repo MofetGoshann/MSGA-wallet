@@ -36,7 +36,7 @@ class ClientBL:
             self._socket_obj.connect((ip, port))
             # let the node know im a client. 1 is client type
             # self.__lastb = chain_on_start("Client", self._socket_obj)
-            self._socket_obj.send(format_data(self.__user + ">1").encode())
+            send(self.__user + ">1", self._socket_obj)
             #always recieve data from node
             self.__always_recieve()
             # Log the data
@@ -67,7 +67,7 @@ class ClientBL:
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} closing")
 
             # Alert the server we're closing this client
-            self.send_data(DISCONNECT_MSG)
+            send(DISCONNECT_MSG, self._socket_obj)
 
             self._recvfunc("Disconnected.")
             # Close client socket
@@ -123,7 +123,7 @@ class ClientBL:
             message: str = self.assemble_transaction(token, amount, rec_address)
             if message==False:
                 return False
-            self._socket_obj.send(format_data(TRANS+"|"+message).encode())
+            send(TRANS+"|"+message, self._socket_obj)
 
             write_to_log(f" 路 Client 路 send to server : {message}")
 

@@ -186,14 +186,14 @@ def create_seed(password: str, user:str):
 
 trans_no_sig = "(3, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC')"
 p_key = create_keys()[0]
-signature = p_key.sign_deterministic(trans_no_sig.encode(), hashfunc=sha256 ,sigencode=sigencode_string)
+
 pub_key = p_key.get_verifying_key()
 
-hexedpub = binascii.hexlify(pub_key.to_string("compressed")).decode() # hexed public key
-hexedsig = binascii.hexlify(signature).decode() # hexed signature
+addres = address_from_key(pub_key)
+print(addres)
+print(check_address(addres))
 
-wholetrans = f"(3, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC', {hexedsig}, {hexedpub})"
-print(wholetrans)
+
 '''
 trial = ""
 sum=0

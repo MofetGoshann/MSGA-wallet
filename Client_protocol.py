@@ -19,9 +19,16 @@ from protocol import *
 
 
 
+def send(msg, skt: socket):
+    skt.send(format_data(msg).encode())
 
+def add_new_user(address, tokenlist, conn):
+    cursor = conn.cursor()
+    for token in tokenlist: # adding to the balances db
 
-
+        cursor.execute('''
+            INSERT INTO balances (address, balance, token, nonce) VALUES (?, ?, ?, ?)
+        ''', (address, 0, token, 1))
 
 
 
@@ -49,12 +56,12 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
         
         trans_list = cursor.fetchall()
         if trans_list: # if valid
-            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)).encode()) # sending the starter
+            send(BLOCKSENDMSG+">"+str(block_header), skt) # sending the starter
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t= str(tr)
-                skt.send(format_data(t).encode())
-            skt.send(format_data(BLOCKSTOPMSG).encode())
+                send(t, skt)
+            send(BLOCKSTOPMSG, skt)
 
             return True
             
@@ -115,11 +122,11 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
         lastb_id, prev_hash = cursor.fetchone() # get the last block
         
         if id!=lastb_id+1: # check the block_id
-            skt.send(format_data("Block id is invalid").encode())
+            send("Block id is invalid",skt)
             return False
         head_no_hash = "(" +id +str(header_tuple[2:])[1:]
         if hashex(head_no_hash)!=header_tuple[1] and header_tuple[2]!=prev_hash: # check the hash
-            skt.send(format_data("Header hash is invalid").encode())
+            send("Header hash is invalid",skt)
             return False
         
         
@@ -132,7 +139,7 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
 
         success =  recieve_trs(skt, typpe, conn) # store the transactions of the block
         if success:
-            skt.send(format_data(SAVEDBLOCK).encode())
+            send(SAVEDBLOCK,skt)
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 
             conn.close()
             return True # if all saved successfully
@@ -150,7 +157,7 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
     
     except Exception as e:
         if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
-            skt.send(format_data("Already have the block").encode())
+            send("Already have the block", skt)
         #log the exception
         write_to_log(f" protocol / couldnt save the block header,type {typpe}; {e}")
         return False
@@ -170,7 +177,7 @@ def create_keynseed():
 
 
 
-def address_from_key(public_key:VerifyingKey):
+def address_from_key(public_key: VerifyingKey):
     hexedpub = binascii.hexlify(public_key.to_string("compressed"))
     
     firsthash = hashlib.sha256(hexedpub).digest()
@@ -178,7 +185,7 @@ def address_from_key(public_key:VerifyingKey):
 
     checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
 
-    full_address = "RR" + secdhash.hexdigest() + checksum
+    return "RR" + secdhash.hexdigest() + checksum
 
 def encrypt_data(data: bytes, password: str) -> bytes:
     # Generate a salt (random data for key derivation)

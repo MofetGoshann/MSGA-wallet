@@ -3,6 +3,29 @@ import socket
 import sqlite3
 import traceback
 
+
+
+
+NEW_USER = "New user just registered, address: "
+def check_address(address):
+
+    if not address.startswith("RR") or len(address) != 38:
+        return False
+    
+    extracted_checksum = address[-4:]  # Last 4 characters
+    address_without_checksum = address[:-4]  # Everything except the last 4 characters
+    
+
+    secdhash_part = address_without_checksum[2:]  # Remove "RR" prefix
+    
+    secdhash_bytes = bytes.fromhex(secdhash_part)  # Convert hex to bytes
+    recomputed_checksum = hashlib.sha256(secdhash_bytes).hexdigest()[:4]
+    
+    # Step 5: Compare the checksums
+    return extracted_checksum == recomputed_checksum
+    
+    
+
 def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
     '''
     sends a block with a specific index to a socket
@@ -28,15 +51,15 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
         
         
         if trans_list: # if block has transactions
-            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)+">1").encode()) # sending the starter with tr in mind
+            send(format_data(BLOCKSENDMSG+">"+str(block_header)+">1").encode(), skt) # sending the starter with tr in mind
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t= str(tr)
-                skt.send(format_data(t).encode())
+                send(format_data(t).encode(),skt)
         else:
-            skt.send(format_data(BLOCKSENDMSG+">"+str(block_header)+">2").encode()) # sending the starter 2 is without transactions
+            send(format_data(BLOCKSENDMSG+">"+str(block_header)+">2").encode(), skt) # sending the starter 2 is without transactions
             
-        skt.send(format_data(BLOCKSTOPMSG).encode())
+        send(format_data(BLOCKSTOPMSG).encode(), skt)
         return True
         
 def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connection):
@@ -57,12 +80,12 @@ def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connect
     
     trans_list = cursor.fetchall()
     if trans_list: # if valid
-        skt.send(format_data(MINEDBLOCKSENDMSG+">" +block_header + ">" + str(diff)).encode()) # sending the starter
+        send(MINEDBLOCKSENDMSG+">" +block_header + ">" + str(diff).encode(), skt) # sending the starter
         for tr in trans_list: # sending all the transactions
             #tr in tuple type
             t= str(tr)
-            skt.send(format_data(t).encode())
-        skt.send(format_data(BLOCKSTOPMSG).encode())
+            send(format_data(t).encode(),skt)
+        send(format_data(BLOCKSTOPMSG).encode(), skt)
 
         return True
         
@@ -71,7 +94,8 @@ def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connect
         write_to_log(f" protocol / failed to send a block with index {block_header[1]}")
         return False
 
-
+def send(msg, skt: socket):
+    skt.send(format_data(msg).encode())
 
 
 
@@ -99,12 +123,12 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
         lastb_id, prev_hash = cursor.fetchone() # get the last block
         
         if id!=lastb_id+1: # check the block_id
-            skt.send(format_data("Block id is invalid").encode())
+            send(format_data("Block id is invalid").encode(), skt)
             return False, "Block id is invalid"
         head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
 
         if hashex(hashex(head_no_hash))!=header_tuple[1] or header_tuple[2]!=prev_hash: # check the hash
-            skt.send(format_data("Header hash is invalid").encode())
+            send(format_data("Header hash is invalid").encode(), skt)
             return False, "Header hash is invalid"
         
         
@@ -136,7 +160,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
     
     except Exception as e:
         if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
-            skt.send(format_data("Already have the block").encode())
+            send(format_data("Already have the block").encode(), skt)
         #log the exception
         write_to_log(f" protocol / couldnt save the block header; {e}")
         traceback.print_exc()

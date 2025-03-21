@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from ClientBL import ClientBL
 from protocol import *
+from Client_protocol import *
 from PIL import Image, ImageTk
 import PyQt5
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit
@@ -28,6 +29,7 @@ BACKGROUND_IMAGE = "Images/Bliss.png"
 LOGIN_ICON = "Images/login.png"
 REG_ICON = "Images/register.png"
 
+
 class DraggableTitleBar(QLabel):
     
     def __init__(s, app_name:str,parent=None):
@@ -36,13 +38,13 @@ class DraggableTitleBar(QLabel):
         s.dragging = False
         s.offset = QPoint()
 
-        title_layout = QHBoxLayout(s)
-        title_layout.setContentsMargins(5, 0, 5, 0)
+        title_login_layout = QHBoxLayout(s)
+        title_login_layout.setContentsMargins(5, 0, 5, 0)
 
         # Title label
         s.title_label = QLabel(app_name)
         s.title_label.setStyleSheet("color: white; font: bold 14px;")
-        title_layout.addWidget(s.title_label)
+        title_login_layout.addWidget(s.title_label)
         
 
         # Minimize button
@@ -50,20 +52,20 @@ class DraggableTitleBar(QLabel):
         s.minimize_button.setFixedSize(25, 25)
         s.minimize_button.setStyleSheet("color: white")
         s.minimize_button.clicked.connect(s.__minimize)
-        title_layout.addWidget(s.minimize_button)
+        title_login_layout.addWidget(s.minimize_button)
         # Maximize button
         s.maximize_button = QPushButton("□")
         s.maximize_button.setStyleSheet("color: white")
         s.maximize_button.setFixedSize(25, 25)
         s.maximize_button.clicked.connect(s.__maximize)
-        title_layout.addWidget(s.maximize_button)
+        title_login_layout.addWidget(s.maximize_button)
 
         # Close button
         s.close_button = QPushButton("✕")
         s.close_button.setFixedSize(25, 25)
         s.close_button.setStyleSheet("color: white")
         s.close_button.clicked.connect(s.__close_main)
-        title_layout.addWidget(s.close_button)
+        title_login_layout.addWidget(s.close_button)
 
     def mousePressEvent(s, event):
         """Start dragging when the left mouse button is pressed."""
@@ -98,6 +100,7 @@ class DraggableTitleBar(QLabel):
     
     def __close_main(s):
         s.parent().close()
+
 
 class DesktopShortcut(QWidget):
     def __init__(self, icon_path, app_name, on_clickback, parent=None):
@@ -200,10 +203,10 @@ class ClientGUI:
 
     def __init__(s):
         s._client = None
-
+        s._login_layout = None
         s._window = None
         s._login_window = None
-
+        s._login_window = None
         s._back_img = None
         s._start_img = None
 
@@ -232,7 +235,7 @@ class ClientGUI:
         s._window = QMainWindow()
 
         s._window.setWindowTitle("MSGA Wallet")
-        
+        s._window.setAttribute(Qt.WA_TranslucentBackground)
         s._window.setWindowFlags(Qt.FramelessWindowHint)
 
         s._central_widget = QWidget(s._window)
@@ -326,21 +329,21 @@ class ClientGUI:
         s._taskbar = QLabel(s._central_widget)
         s._taskbar.setStyleSheet("background-color: #003580; border:none")
         
-        s._task_layout = QHBoxLayout(s._taskbar)
-        s._task_layout.setContentsMargins(5, 0, 5, 0)
+        s._task_login_layout = QHBoxLayout(s._taskbar)
+        s._task_login_layout.setContentsMargins(5, 0, 5, 0)
         
         s.title_bar = DraggableTitleBar("XP Wallet", s._window)
         s.title_bar.setStyleSheet("background-color: #000080; border-radius: 2 2 0 0")
         
         '''
         # Title bar layout
-        title_layout = QHBoxLayout(s.title_bar)
-        title_layout.setContentsMargins(5, 0, 5, 0)
+        title_login_layout = QHBoxLayout(s.title_bar)
+        title_login_layout.setContentsMargins(5, 0, 5, 0)
 
         # Title label
         s.title_label = QLabel("My XP-Style App")
         s.title_label.setStyleSheet("color: white; font: bold 14px;")
-        title_layout.addWidget(s.title_label)
+        title_login_layout.addWidget(s.title_label)
         
 
         # Minimize button
@@ -348,20 +351,20 @@ class ClientGUI:
         s.minimize_button.setFixedSize(25, 25)
         s.minimize_button.setStyleSheet("color: white")
         s.minimize_button.clicked.connect(s.__minimize)
-        title_layout.addWidget(s.minimize_button)
+        title_login_layout.addWidget(s.minimize_button)
 
         s.maximize_button = QPushButton("□")
         s.maximize_button.setStyleSheet("color: white")
         s.maximize_button.setFixedSize(25, 25)
         s.maximize_button.clicked.connect(s.__maximize)
-        title_layout.addWidget(s.maximize_button)
+        title_login_layout.addWidget(s.maximize_button)
 
         # Close button
         s.close_button = QPushButton("✕")
         s.close_button.setFixedSize(25, 25)
         s.close_button.setStyleSheet("color: white")
         s.close_button.clicked.connect(s.__close_main)
-        title_layout.addWidget(s.close_button)
+        title_login_layout.addWidget(s.close_button)
         '''
         s.title_bar.setGeometry(0,0,s._back_img_size[0],30)
         s.title_bar.raise_()
@@ -369,107 +372,266 @@ class ClientGUI:
 
         s._start_button.raise_()
         
-        s._cut_layout = QVBoxLayout(s._back_label)
-        s._cut_layout.setAlignment(Qt.AlignTop|Qt.AlignLeft)
-        s._cut_layout.setSpacing(10)
-        s._cut_layout.setContentsMargins(0,10,0,10)
-        s._login_cut = DesktopShortcut(LOGIN_ICON, "Login", s.__login_event,s._central_widget)
+        s._cut_login_layout = QVBoxLayout(s._back_label)
+        s._cut_login_layout.setAlignment(Qt.AlignTop|Qt.AlignLeft)
+        s._cut_login_layout.setSpacing(10)
+        s._cut_login_layout.setContentsMargins(0,10,0,10)
+        s._login_cut = DesktopShortcut(LOGIN_ICON, "Login", s.openlogingui ,s._central_widget)
         s._login_cut.setFixedSize(72,72)
 
-        s._reg_cut = DesktopShortcut(REG_ICON, "Register", s._central_widget)
+        s._reg_cut = DesktopShortcut(REG_ICON, "Register", s.openreggui, s._central_widget)
         s._reg_cut.setFixedSize(72,72)
 
-        s._cut_layout.addWidget(s._login_cut)
-        s._cut_layout.addWidget(s._reg_cut)      
-        s._back_label.setLayout(s._cut_layout)
+        s._cut_login_layout.addWidget(s._login_cut)
+        s._cut_login_layout.addWidget(s._reg_cut)      
+        s._back_label.setLayout(s._cut_login_layout)
         
         # Main layout
-        #main_layout = QVBoxLayout(s._central_widget)
-        #main_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
-        #main_layout.setSpacing(0)
+        #main_login_layout = QVBoxLayout(s._central_widget)
+        #main_login_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        #main_login_layout.setSpacing(0)
 
-        #main_layout.addWidget(s.title_bar)
+        #main_login_layout.addWidget(s.title_bar)
         
-        #main_layout.addWidget(s._taskbar)
-        #main_layout.addStretch()
+        #main_login_layout.addWidget(s._taskbar)
+        #main_login_layout.addStretch()
 
-
-    def __login_event(s):
-        s._login_window = QMainWindow()
-        s._login_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window)
+    def openlogingui(s):
+        s._login_window = QMainWindow() 
+        s._login_window.setAttribute(Qt.WA_TranslucentBackground)
+        s._login_window.setWindowTitle("Login")
+        s._login_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window) # remove the title bar
 
         s._login_window.setStyleSheet(
             '''
-                QMainWindow {
-                background-color: #ece9d8;
-                border: 4px solid #000080;
-                border-radius: 8px;                
-            }
-                QWidget {
-                background-color: #ece9d8;
+                QLineEdit {
+                background-color: black !important;
                 border: 4px solid #000080;
                 border-radius: 8px;     
                 }
-           ''')
-        central_wid = QWidget(s._login_window)
-        central_wid.move(0,30)
-        s._login_window.setCentralWidget(central_wid)
+        ''')
+        s._login_central_wid = QWidget(s._login_window)
+        s._login_central_wid.setStyleSheet("background-color: #ece9d8; border: 4px solid #000080; border-radius: 2 2 0 0;")
 
         s._login_window.setGeometry(int(s._window.width() / 2)-200, int(s._window.height() /2)-100, 400,200)
-        s._login_window.setFixedSize(400,200)
+        s._login_window.setFixedSize(400,250)
 
-        title_bar = DraggableTitleBar("Login",s._login_window)
-        title_bar.setStyleSheet("background-color: #000080; border-radius: 2 2 0 0")
+        s._login_central_wid.setGeometry(0,30,s._login_window.width(),s._login_window.height()-30)
+        s._login_central_wid.setFixedSize(s._login_window.width(),s._login_window.height()-30)
+
+
+        title_bar = DraggableTitleBar("Login",s._login_window) # add custom title bar
+        title_bar.setStyleSheet("background-color: #000080; border-radius: 0 0 2 2")
         title_bar.raise_()
 
         title_bar.setGeometry(0,0,400,30)
         title_bar.setFixedSize(400,30)
 
-        layout = QVBoxLayout()
+        s._login_layout = QVBoxLayout()
+        
+        s._login_layout.setSpacing(5)
+        s._login_layout.setAlignment(Qt.AlignCenter)
 
-        username_label = QLabel("Username:",central_wid)
-        layout.addWidget(username_label)
+        username_label = QLabel("Username:",s._login_central_wid)
+        username_label.setStyleSheet(" border: none; font: bold 20px;")
+        username_label.setAlignment(Qt.AlignCenter)
+        username_label.setFixedHeight(20)
+        s._login_layout.addWidget(username_label)
 
-        username_input = QLineEdit(central_wid)
-        layout.addWidget(username_input)
+        s._username_input = QLineEdit(s._login_central_wid)
+        s._username_input.setStyleSheet("background-color: white")
+        s._login_layout.addWidget(s._username_input)
 
         # Create and add the password label and input field
-        password_label = QLabel("Password:", central_wid)
-        layout.addWidget(password_label)
+        password_label = QLabel("Password:", s._login_central_wid)
+        password_label.setStyleSheet(" border: none; font: bold 20px;")
+        password_label.setAlignment(Qt.AlignCenter)
+        password_label.setFixedHeight(20)
+        s._login_layout.addWidget(password_label)
 
-        password_input = QLineEdit(central_wid)
-        password_input.setEchoMode(QLineEdit.Password)  # Hide the password input
-        layout.addWidget(password_input)
+        s._password_input = QLineEdit(s._login_central_wid)
+        s._password_input.setStyleSheet("background-color: white")
+        s._password_input.setEchoMode(QLineEdit.Password)  # Hide the password input
+        s._login_layout.addWidget(s._password_input)
 
         # Create and add the login button
         login_button = QPushButton("Login")
-        login_button.clicked.connect(on_login_clicked)
-        layout.addWidget(login_button)
+        login_button.setFixedSize(100,30)
+        login_button.setStyleSheet("background-color: #000080; color: white; ")
 
+        login_button.clicked.connect(s.__login_on_click)
+        s._login_layout.addWidget(login_button, alignment=Qt.AlignCenter)
 
+        s._login_layout.insertSpacing(4, 10)
+        s._login_layout.insertSpacing(6, 10)
 
-
-
+        s._login_central_wid.setLayout(s._login_layout)
         s._login_window.show()
 
 
+    def __login_on_click(s):
+
+        if s._login_layout.count()==6: # if not needed seed
+            s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
+            s.user = s._username_input.text()
+            s.pas = s._password_input.text()
+
+            send(f"LOGIN>{s.user}>{s.pas}", s._skt)
+
+            result = receive_buffer(s._skt)
+            if result==LOG_MSG:
+                with open(s.user+".bin", "rb") as file: # check if seed is on this computer
+                    enc_seed = file.read()
+                if not enc_seed:
+                    # add input for seed
+                    seed_label = QLabel("Seed(12 words: word1 word2 ...):", s._login_central_wid)
+                    s._login_layout.insertWidget(4,seed_label)
+
+                    s._seed_input = QLineEdit(s._login_central_wid) 
+                    s._login_layout.insertWidget(5,s._password_input)  
+                    return      
+                seed = decrypt_data(enc_seed, s.pas)
+
+                private_key_bytes = hashlib.sha256(seed).digest()
+                private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
+                public_key = private_key.get_verifying_key()
+
+                s.__connect_event(s.user, public_key, s._skt)
+
+                s._window.close() # close the login window
+                return
+
+            else:
+                s._err_label = QLabel(result, s._login_central_wid)
+                s._err_label.setStyleSheet("color: red; font-weight: bold;")
+                s._login_layout.insertWidget(6,s._err_label)
+
+        else: # if dealing with seed
+            mnemonic = s._seed_input.text() # get the phrase seed
+            if mnemonic.split(" ") !=11: # 12 words
+                if s._seed_err_label==None:
+                    s._seed_err_label = QLabel("Wrong seed", s._login_central_wid)
+                    s._seed_err_label.setStyleSheet("color: red; font-weight: bold;")
+                    s._login_layout.insertWidget(6,s._seed_err_label)
+            try:
+                seed = bip39.phrase_to_seed(mnemonic)
+
+                private_key_bytes = hashlib.sha256(seed).digest()
+                private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
+                public_key = private_key.get_verifying_key()
+
+                s._window.close() # close the login window
+                s.__connect_event(s.user, public_key, s._skt)
+
+                return 
+            except Exception:
+                if s._seed_err_label==None:
+                    s._seed_err_label = QLabel("Wrong seed", s._login_central_wid)
+                    s._seed_err_label.setStyleSheet("color: red; font-weight: bold;")
+                    s._login_layout.insertWidget(6,s._seed_err_label)
+
+            
+    def openreggui(s):
+        s._reg_window = QMainWindow() 
+        s._reg_window.setAttribute(Qt.WA_TranslucentBackground)
+        s._reg_window.setWindowTitle("Register")
+        s._reg_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window) # remove the title bar
+
+        s._reg_window.setStyleSheet(
+            '''
+                QLineEdit {
+                background-color: black !important;
+                border: 4px solid #000080;
+                border-radius: 8px;     
+                }
+        ''')
+        s._reg_central_wid = QWidget(s._reg_window)
+        s._reg_central_wid.setStyleSheet("background-color: #ece9d8; border: 4px solid #000080; border-radius: 2 2 0 0;")
+
+        s._reg_window.setGeometry(int(s._window.width() / 2)-200, int(s._window.height() /2)-100, 400,200)
+        s._reg_window.setFixedSize(400,220)
+
+        s._reg_central_wid.setGeometry(0,30,s._reg_window.width(),s._reg_window.height()-30)
+        s._reg_central_wid.setFixedSize(s._reg_window.width(),s._reg_window.height()-30)
 
 
+        title_bar = DraggableTitleBar("Register",s._reg_window) # add custom title bar
+        title_bar.setStyleSheet("background-color: #000080; border-radius: 0 0 2 2")
+        title_bar.raise_()
 
+        title_bar.setGeometry(0,0,400,30)
+        title_bar.setFixedSize(400,30)
 
-
-
-
-
-
-
-        # Connect
-
-
-        # Send data
-    
-    #def __login_on_click(s):
+        s._reg_layout = QVBoxLayout()
         
+        s._reg_layout.setSpacing(5)
+        s._reg_layout.setAlignment(Qt.AlignCenter)
+
+        username_label = QLabel("Username:",s._reg_central_wid)
+        username_label.setStyleSheet(" border: none; font: bold 20px;")
+        username_label.setAlignment(Qt.AlignCenter)
+        username_label.setFixedHeight(20)
+        s._reg_layout.addWidget(username_label)
+
+        s._username_input = QLineEdit(s._reg_central_wid)
+        s._username_input.setStyleSheet("background-color: white")
+        s._reg_layout.addWidget(s._username_input)
+
+        # Create and add the password label and input field
+        password_label = QLabel("Password:", s._reg_central_wid)
+        password_label.setStyleSheet(" border: none; font: bold 20px;")
+        password_label.setAlignment(Qt.AlignCenter)
+        password_label.setFixedHeight(20)
+        s._reg_layout.addWidget(password_label)
+
+        s._password_input = QLineEdit(s._reg_central_wid)
+        s._password_input.setStyleSheet("background-color: white")
+        s._password_input.setEchoMode(QLineEdit.Password)  # Hide the password input
+        s._reg_layout.addWidget(s._password_input)
+
+        # Create and add the login button
+        reg_button = QPushButton("Register")
+        reg_button.setFixedSize(100,30)
+        reg_button.setStyleSheet("background-color: #000080; color: white; ")
+
+        reg_button.clicked.connect(s.__reg_on_click)
+        s._reg_layout.addWidget(reg_button, alignment=Qt.AlignCenter)
+
+        s._reg_layout.insertSpacing(4, 10)
+        s._reg_layout.insertSpacing(6, 10)
+        s._reg_central_wid.setLayout(s._reg_layout)
+        s._reg_window.show()
+            
+    def __reg_on_click(s):
+            s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
+            s.user = s._username_input.text()
+            s.pas = s._password_input.text()
+            
+            (seed_phrase, address) = create_seed()
+
+            send(f"REG>{s.user}>{s.pas}>{address}", s._skt)
+
+            result = receive_buffer(s._skt)
+            if result==REG_MSG:
+                # show the seed phrase
+                
+
+                with open(s.user, "wb") as file: # save the phrase
+                    file.write(encrypt_data(seed_phrase, s.pas))
+                
+
+
+
+
+
+
+
+
+
+
+
 
     def __minimize(s):
         s._window.showMinimized()
@@ -486,17 +648,18 @@ class ClientGUI:
         s._window.close()
     
     def draw(s):
+        app = QApplication([])
         s._window.show()
-        sys.exit(s._app.exec_())
+        app.exec_()
     
     
-    def __connect_event(s, user,  add):
+    def __connect_event(s, user,  p_key: VerifyingKey, skt):
 
 
         try:
             # Handle failure on casting from string to int
 
-            s._client: ClientBL= ClientBL(DEFAULT_IP ,13333, user, add)
+            s._client: ClientBL= ClientBL(DEFAULT_IP ,DEFAULT_PORT, user, p_key, skt)
 
             # check if we successfully created socket
             # and ready to go

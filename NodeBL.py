@@ -110,10 +110,11 @@ class NodeBL:
                 # Use time_out function for .accept() to close thread on no need
                 connected_socket, client_addr = self.__time_accept(0.3)
                 logreg = receive_buffer(connected_socket)[1]
-                if logreg=="REGISTER":
-                    self.register(logreg, connected_socket)
+                if logreg=="REG":
+                    res = self.register(logreg, connected_socket)
+                
                 # Check if we didn't time out
-                if connected_socket:
+                if connected_socket and res==True:
                     connectedsession: Session = Session(client_addr[0], client_addr[1], connected_socket)
                     self._sessionlist.append(connectedsession)
 
@@ -236,7 +237,7 @@ class NodeBL:
         if check:
             send(LOG_MSG, skt)
             return True
-        send("Wrong username or password", skt)
+        send("Error, wrong username or password", skt)
         return False
 
 

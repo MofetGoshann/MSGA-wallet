@@ -13,6 +13,12 @@ import time
 import ast
 from protocol import *
 
+
+
+NEW_USER = "New user just registered, address: "
+DEFAULT_PORT =13333
+
+
 def check_address(address):
 
     if not address.startswith("RR") or len(address) != 38:

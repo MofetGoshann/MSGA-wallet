@@ -14,26 +14,25 @@ import socket
 
 class ClientBL:
 
-    def __init__(self, ip: str, port: int, username:str, c_address:str):
+    def __init__(self, ip: str, port: int, username:str, public_key:VerifyingKey, skt:socket):
         # Here will be not only the init process of data
         # but also the connect event
 
         self._socket_obj: socket = None
         self.__user = username
-        self.__c_address = c_address
+        self.__public_key = public_key
         self.__recieved_message:str = None
         self._last_error = ""
         self.__nonce = {'SNC': 1}
         self._recvfunc =None #recv_callback
-        self._success = self.__connect(ip, port)
+        self._success = self.__connect(ip, port, skt)
 
-    def __connect(self, ip: str, port: int) -> bool:
+    def __connect(self, ip: str, port: int, skt) -> bool:
         #connect client on start init returns success of connection
 
         try:
             # Create and connect socket
-            self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket_obj.connect((ip, port))
+            self._socket_obj = skt
             # let the node know im a client. 1 is client type
             # self.__lastb = chain_on_start("Client", self._socket_obj)
             send(self.__user + ">1", self._socket_obj)

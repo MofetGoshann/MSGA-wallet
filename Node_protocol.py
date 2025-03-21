@@ -7,6 +7,8 @@ import traceback
 
 
 NEW_USER = "New user just registered, address: "
+DEFAULT_PORT = 13333
+
 def check_address(address):
 
     if not address.startswith("RR") or len(address) != 38:

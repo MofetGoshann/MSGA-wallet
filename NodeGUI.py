@@ -84,7 +84,7 @@ class NodeGUI:
         self._start_button.config(state="disabled")
         
         ip = DEFAULT_IP
-        port = 13333
+        port = DEFAULT_PORT
 
         self._node = NodeBL(ip, port)
         

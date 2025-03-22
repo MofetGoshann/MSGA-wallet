@@ -25,7 +25,23 @@ def check_address(address):
     
     # Step 5: Compare the checksums
     return extracted_checksum == recomputed_checksum
-    
+
+def receive_buffer(my_socket: socket) -> (bool, str):
+    """
+    Extracts a message from the socket and handles potential errors.
+    """
+
+    try:
+        buffer_size = int(my_socket.recv(HEADER_SIZE).decode())
+        logging.info("  Protocol  · Buffer size : {}".format(buffer_size))
+
+        buffer = my_socket.recv(buffer_size)
+        logging.info("  Protocol  · Buffer data : {}".format(buffer.decode()))
+
+        return True, buffer.decode()
+    except Exception as e:
+        # On buffer size convert fail
+        return False, "Error"    
     
 
 def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:

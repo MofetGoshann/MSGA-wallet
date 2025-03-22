@@ -1,30 +1,7 @@
-2025-03-18 13:28:15,344 - INFO -   Node    · starting
-2025-03-18 13:28:15,345 - INFO -   Node    · listening on 0.0.0.0
-2025-03-18 13:28:18,624 - INFO -   Protocol  · Buffer size : 5
-2025-03-18 13:28:18,624 - INFO -   Protocol  · Buffer data : asd>2
-2025-03-18 13:28:18,625 - INFO -  Node / Active connection 1
-2025-03-18 13:28:18,625 - INFO - Node / New miner : asd connected
-2025-03-18 13:28:18,682 - INFO -   Protocol  · Buffer size : 44
-2025-03-18 13:28:18,682 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>91
-2025-03-18 13:28:18,682 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>91
-2025-03-18 13:28:18,683 - INFO -  Node / Updated: asd
-2025-03-18 13:28:18,683 - INFO -   Protocol  · Buffer size : 12
-2025-03-18 13:28:18,683 - INFO -   Protocol  · Buffer data : UPDATED>91>6
-2025-03-18 13:28:18,683 - INFO -  Miner / Received from Node : UPDATED>91>6
-2025-03-18 13:28:39,307 - INFO - Sent the block 92 to node 
-2025-03-18 13:28:39,307 - INFO -   Protocol  · Buffer size : 271
-2025-03-18 13:28:39,307 - INFO -   Protocol  · Buffer data : Sending mined block>(92, '000000c252222f43e824f5038db9933dd2613aa2c5244fa060deab0a2983a596', '000000363ed820b36c82129cd5592b44d45a8233653befc80c880694d6e90792', '15480c00559acb940bd1c79d3336919cf76336045315321485a7d508a6f322aa', '18.03.2025 13:28:38', 6, 8201900)>20.58>1
-2025-03-18 13:28:39,308 - INFO -  Node / received from miner : asd - Sending mined block>(92, '000000c252222f43e824f5038db9933dd2613aa2c5244fa060deab0a2983a596', '000000363ed820b36c82129cd5592b44d45a8233653befc80c880694d6e90792', '15480c00559acb940bd1c79d3336919cf76336045315321485a7d508a6f322aa', '18.03.2025 13:28:38', 6, 8201900)>20.58>1
-2025-03-18 13:28:39,318 - INFO -   Protocol  · Buffer size : 260
-2025-03-18 13:28:39,319 - INFO -   Protocol  · Buffer data : (92, 3, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC', '6fa006561802d95025febffc48a1e32ecc264ab67a081b0e6085441f4fa52a1132c3c70eea1762e136ecb72feb10ab0c2dd9cb090ccd7b2a80473f12210f995c', '0363d4e1280c72dd288133385ee27b4a8605a7b5d9d38e26799e85f70744c16f03')
-2025-03-18 13:28:39,320 - INFO -   Protocol  · Buffer size : 27
-2025-03-18 13:28:39,320 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-18 13:28:39,326 - INFO - Successfully saved the block 92 and its transactions
-2025-03-18 13:28:39,327 - INFO -   Protocol  · Buffer size : 23
-2025-03-18 13:28:39,328 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-18 13:28:39,328 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-18 13:28:39,427 - INFO - Miner / Successully mined and broadcasted the block 92
-2025-03-18 13:28:42,404 - INFO -  Node / miners {user} socket is wrong
-2025-03-18 13:28:54,033 - INFO - Sent the block 93 to node 
-2025-03-18 13:28:54,034 - INFO -  protocol / Sent a block with no header
-2025-03-18 13:28:54,044 - INFO - Miner / Successully mined and broadcasted the block 93
+2025-03-22 16:21:17,973 - INFO -   Node    · starting
+2025-03-22 16:21:17,975 - INFO - Current block is 92, with the difficulty of 6
+2025-03-22 16:21:17,976 - INFO -   Node    · listening on 0.0.0.0
+2025-03-22 16:25:54,405 - INFO -   Protocol  · Buffer size : 11
+2025-03-22 16:25:54,405 - INFO -   Protocol  · Buffer data : LOGIN>fg>fg
+2025-03-22 16:25:54,406 - INFO -   Protocol  · Buffer size : 33
+2025-03-22 16:25:54,406 - INFO -   Protocol  · Buffer data : Error, wrong username or password

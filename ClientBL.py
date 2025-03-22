@@ -14,16 +14,17 @@ import socket
 
 class ClientBL:
 
-    def __init__(self, ip: str, port: int, username:str, public_key:VerifyingKey, skt:socket):
+    def __init__(self, ip: str, port: int, username:str, pas:str, skt:socket):
         # Here will be not only the init process of data
         # but also the connect event
 
         self._socket_obj: socket = None
         self.__user = username
-        self.__public_key = public_key
+        self.__pass = pas
         self.__recieved_message:str = None
         self._last_error = ""
         self.__nonce = {'SNC': 1}
+        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "COLR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         self._recvfunc =None #recv_callback
         self._success = self.__connect(ip, port, skt)
 
@@ -91,14 +92,24 @@ class ClientBL:
         '''gets the transaction info and assembles transaction ready to send
         (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
         time = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
-        transaction = f"({self.__nonce[token]}, '{str(time)}', '{self.__c_address}', '{rec_address}', {amount}, '{token}')"
+        
         
         
         try:
-            private_key = SigningKey.generate(NIST256p)
-            signature = private_key.sign_deterministic(transaction.encode(), hashfunc=sha256 ,sigencode=sigencode_string)
-            public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
+            with open(self.__user+".bin", "rb") as file: # save the phrase encypted
+                enc_phrase = file.read()
             
+            phrase = decrypt_data(enc_phrase, self.__pass)
+            seed = bip39.phrase_to_seed(phrase)
+
+            private_key_bytes = hashlib.sha256(seed).digest()
+            private_key = SigningKey.from_string(private_key_bytes, NIST256p)
+
+            public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
+            addres = address_from_key(public_key)
+            
+            transaction = f"({self.__nonce[token]}, '{str(time)}', '{addres}', '{rec_address}', {amount}, '{token}')"
+            signature = private_key.sign_deterministic(transaction.encode(), hashfunc=sha256 ,sigencode=sigencode_string)
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 

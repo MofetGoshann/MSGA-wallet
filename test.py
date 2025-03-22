@@ -191,7 +191,7 @@ pub_key = p_key.get_verifying_key()
 
 addres = address_from_key(pub_key)
 print(addres)
-print(check_address(addres))
+
 
 
 '''

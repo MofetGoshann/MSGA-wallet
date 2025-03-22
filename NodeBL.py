@@ -63,8 +63,8 @@ class NodeBL:
 
         self.__timedict.update(loaded_data)
 
-        self._conn = sqlite3.connect(f'databases/Node/blockchain.db')
-        self.__on_start() # update the 
+        self._conn = None
+        
 
         with open('LogFile.log', 'w'): # open the log file
             pass
@@ -98,7 +98,8 @@ class NodeBL:
     def Node_process(self) -> bool:
 
         try:
-
+            self._conn = sqlite3.connect(f'databases/Node/blockchain.db')
+            self.__on_start() # update the 
             self.__Node_running_flag = True
 
             self._Node_socket.listen()  # listen for clients
@@ -109,9 +110,16 @@ class NodeBL:
 
                 # Use time_out function for .accept() to close thread on no need
                 connected_socket, client_addr = self.__time_accept(0.3)
-                logreg = receive_buffer(connected_socket)[1]
-                if logreg=="REG":
+                logreg: str = receive_buffer(connected_socket)[1]
+
+                res =False
+                if logreg.startswith("REG"):
+                    print("reg")
                     res = self.register(logreg, connected_socket)
+
+                if logreg.startswith("LOG"):
+                    print("log")
+                    res = self.login(logreg, connected_socket)
                 
                 # Check if we didn't time out
                 if connected_socket and res==True:
@@ -146,6 +154,7 @@ class NodeBL:
         except Exception as e:
 
             # Handle failure
+            traceback.print_exc()
             write_to_log(f" Node / Failed to handle a message; {e}")
 
             self._last_error = f"An error occurred in Node bl [Node_process function]\nError : {e}"
@@ -197,7 +206,7 @@ class NodeBL:
         # get the uid
         cursor.execute('''
             SELECT uId FROM users WHERE username = ?
-        ''', (user))
+        ''', (user, ))
 
         id = cursor.fetchone()[0]
 
@@ -215,8 +224,9 @@ class NodeBL:
 
         s._conn.commit() # commit changes
         # broadcast 
-        for session in s._sessionlist:
-            send(NEW_USER + f">{address}", session.getsocket())
+        if s._sessionlist:
+            for session in s._sessionlist:
+                send(NEW_USER + f">{address}", session.getsocket())
         
         send(REG_MSG, skt)
         return True
@@ -499,7 +509,55 @@ class NodeBL:
             s.__timedict["diff"]+=1
     
     def __on_start(s):
+
+
+
+
         cursor = s._conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS blocks (
+            block_id INT PRIMARY KEY NOT NULL,
+            block_hash VARCHAR(64) NOT NULL,
+            previous_block_hash VARCHAR(64),
+            merkle_root VARCHAR(64) NOT NULL,
+            timestamp VARCHAR(24) NOT NULL,
+            difficulty INT NOT NULL,
+            nonce INT NOT NULL
+            )
+            ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+            block_id INT NOT NULL,
+            nonce INT NOT NULL,
+            timestamp VARCHAR(24) NOT NULL,
+            sender VARCHAR(64) NOT NULL,
+            reciever VARCHAR(64) NOT NULL,
+            amount REAL NOT NULL,
+            token VARCHAR(12) NOT NULL,
+            hex_pub_key VARCHAR(256) NOT NULL,
+            hex_signature VARCHAR(256) NOT NULL
+            )
+            ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS balances (
+            uId INT NOT NULL,
+            address VARCHAR(64) NOT NULL,
+            balance REAL NOT NULL,
+            token VARCHAR(12) NOT NULL,
+            nonce INT NOT NULL
+            )
+            ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+            uId INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(16) NOT NULL,
+            pass VARCHAR(16) NOT NULL
+            )
+            ''')
+    
         cursor.execute('''
         SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
         ''')

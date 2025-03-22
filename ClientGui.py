@@ -133,9 +133,10 @@ class DesktopShortcut(QWidget):
         
         # Create a button with an icon
         self.button = QPushButton(self)
+        self.button.clicked.connect(self.callback)
         self.button.setIcon(QIcon(self.icon_path))
-        self.button.setIconSize(QSize(48, 48))  # Set icon size
-        self.button.setFixedSize(48, 48)  # Set button size
+        self.button.setIconSize(QSize(64, 64))  # Set icon size
+        self.button.setFixedSize(64, 64)  # Set button size
         """
         self.button.setStyleSheet(
             QPushButton {
@@ -193,9 +194,11 @@ class DesktopShortcut(QWidget):
                 background-color: transparent;
             }
         """)
-    def mousePressEvent(self, event):
+    def mouseDoubleClickEvent(self, event):
         # open th needed window when the shortcut is clicked
         self.callback()
+    
+
 
         
 
@@ -203,13 +206,16 @@ class ClientGUI:
 
     def __init__(s):
         s._client = None
-        s._login_layout = None
+        
         s._window = None
         s._login_window = None
-        s._login_window = None
+        s._reg_window = None
+
+        s._login_layout = None
+        s._reg_layout = None
+
         s._back_img = None
         s._start_img = None
-
         s._back_img_size = [0, 0]
         s._btn_img_size = [0, 0]
 
@@ -217,8 +223,8 @@ class ClientGUI:
         # UI
         s._connect_button = None
         s._disconnect_button = None
-        s._send_button = None
         s._login_button = None
+        s._err_label=None
 
         s._ip_entry = None
         s._port_entry = None
@@ -234,7 +240,7 @@ class ClientGUI:
         s._app = QApplication([])
         s._window = QMainWindow()
 
-        s._window.setWindowTitle("MSGA Wallet")
+        s._window.setWindowTitle("XP Wallet")
         s._window.setAttribute(Qt.WA_TranslucentBackground)
         s._window.setWindowFlags(Qt.FramelessWindowHint)
 
@@ -376,11 +382,11 @@ class ClientGUI:
         s._cut_login_layout.setAlignment(Qt.AlignTop|Qt.AlignLeft)
         s._cut_login_layout.setSpacing(10)
         s._cut_login_layout.setContentsMargins(0,10,0,10)
-        s._login_cut = DesktopShortcut(LOGIN_ICON, "Login", s.openlogingui ,s._central_widget)
-        s._login_cut.setFixedSize(72,72)
+        s._login_cut = DesktopShortcut(REG_ICON, "Login", s.openlogingui ,s._central_widget)
+        s._login_cut.setFixedSize(86,80)
 
-        s._reg_cut = DesktopShortcut(REG_ICON, "Register", s.openreggui, s._central_widget)
-        s._reg_cut.setFixedSize(72,72)
+        s._reg_cut = DesktopShortcut(LOGIN_ICON, "Register", s.openreggui, s._central_widget)
+        s._reg_cut.setFixedSize(86,80)
 
         s._cut_login_layout.addWidget(s._login_cut)
         s._cut_login_layout.addWidget(s._reg_cut)      
@@ -470,67 +476,85 @@ class ClientGUI:
 
 
     def __login_on_click(s):
+        try:
+            if s._login_layout.count()==7: # if not needed seed
+                s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
+                s.user = s._username_input.text()
+                s.pas = s._password_input.text()
 
-        if s._login_layout.count()==6: # if not needed seed
-            s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
-            s.user = s._username_input.text()
-            s.pas = s._password_input.text()
+                send(f"LOGIN>{s.user}>{s.pas}", s._skt)
 
-            send(f"LOGIN>{s.user}>{s.pas}", s._skt)
+                result = receive_buffer(s._skt)
+                if result==LOG_MSG:
+                    with open("phrases/"+s.user+".bin", "rb") as file: # check if seed is on this computer
+                        enc_seed = file.read()
+                    if not enc_seed:
+                        # add input for seed
+                        seed_label = QLabel("Seed(12 words: word1 word2 ...):", s._login_central_wid)
+                        s._login_layout.insertWidget(4,seed_label)
 
-            result = receive_buffer(s._skt)
-            if result==LOG_MSG:
-                with open(s.user+".bin", "rb") as file: # check if seed is on this computer
-                    enc_seed = file.read()
-                if not enc_seed:
-                    # add input for seed
-                    seed_label = QLabel("Seed(12 words: word1 word2 ...):", s._login_central_wid)
-                    s._login_layout.insertWidget(4,seed_label)
+                        s._seed_input = QLineEdit(s._login_central_wid) 
+                        s._login_layout.insertWidget(5,s._password_input)  
+                        return      
+                    seed = decrypt_data(enc_seed, s.pas)
 
-                    s._seed_input = QLineEdit(s._login_central_wid) 
-                    s._login_layout.insertWidget(5,s._password_input)  
-                    return      
-                seed = decrypt_data(enc_seed, s.pas)
+                    private_key_bytes = hashlib.sha256(seed).digest()
+                    private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
+                    public_key = private_key.get_verifying_key()
 
-                private_key_bytes = hashlib.sha256(seed).digest()
-                private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
-                public_key = private_key.get_verifying_key()
+                    s._login_window.close() # close the login window
+                    s.__connect_event(s.user, public_key, s._skt)
 
-                s.__connect_event(s.user, public_key, s._skt)
+                    return
 
-                s._window.close() # close the login window
-                return
+                else:
+                    s._err_label = QLabel(result, s._login_central_wid)
+                    s._err_label.setStyleSheet("color: red; font-weight: bold;")
+                    s._login_layout.insertWidget(6,s._err_label)
 
-            else:
-                s._err_label = QLabel(result, s._login_central_wid)
-                s._err_label.setStyleSheet("color: red; font-weight: bold;")
-                s._login_layout.insertWidget(6,s._err_label)
+            else: # if dealing with seed
+                mnemonic = s._seed_input.text() # get the phrase seed
+                if mnemonic.split(" ") !=11: # 12 words
+                    if s._err_label==None:
 
-        else: # if dealing with seed
-            mnemonic = s._seed_input.text() # get the phrase seed
-            if mnemonic.split(" ") !=11: # 12 words
-                if s._seed_err_label==None:
-                    s._seed_err_label = QLabel("Wrong seed", s._login_central_wid)
-                    s._seed_err_label.setStyleSheet("color: red; font-weight: bold;")
-                    s._login_layout.insertWidget(6,s._seed_err_label)
-            try:
-                seed = bip39.phrase_to_seed(mnemonic)
+                        s._err_label = QLabel("Wrong seed", s._login_central_wid)
+                        s._err_label.setStyleSheet("color: red; font-weight: bold;")
+                        s._login_layout.insertWidget(6,s._err_label)
+                    
+                    elif s._err_label.text()!="Wrong seed":
 
-                private_key_bytes = hashlib.sha256(seed).digest()
-                private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
-                public_key = private_key.get_verifying_key()
+                        s._err_label.setParent(None) # delete from layout
+                        s._err_label = QLabel("Wrong seed", s._login_central_wid)
+                        s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+                        s._login_layout.insertWidget(6,s._err_label, alignment=Qt.AlignCenter)
+                else: # mnemonic is valid
+                    try:
+                        seed = bip39.phrase_to_seed(mnemonic)
 
-                s._window.close() # close the login window
-                s.__connect_event(s.user, public_key, s._skt)
+                        private_key_bytes = hashlib.sha256(seed).digest()
+                        private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
+                        public_key = private_key.get_verifying_key()
 
-                return 
-            except Exception:
-                if s._seed_err_label==None:
-                    s._seed_err_label = QLabel("Wrong seed", s._login_central_wid)
-                    s._seed_err_label.setStyleSheet("color: red; font-weight: bold;")
-                    s._login_layout.insertWidget(6,s._seed_err_label)
-
+                        s._login_window.close() # close the login window
+                        s.__connect_event(s.user, public_key, s._skt)
+                        return 
+                    
+                    except Exception:
+                        if s._err_label==None:
+                            s._err_label = QLabel("Wrong seed", s._login_central_wid)
+                            s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+                            s._login_layout.insertWidget(6,s._err_label, alignment=Qt.AlignCenter)
+                        
+                        elif s._err_label.text()!="Wrong seed":
+                            s._err_label.setText("Wrong seed")
+        except Exception:
+            if s._err_label==None:
+                s._err_label = QLabel("Couldnt connect to node", s._login_central_wid)
+                s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+                s._login_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
+            elif s._err_label.text()!="Couldnt connect to node":
+                s._err_label.setText("Couldnt connect to node")
             
     def openreggui(s):
         s._reg_window = QMainWindow() 
@@ -604,22 +628,82 @@ class ClientGUI:
         s._reg_window.show()
             
     def __reg_on_click(s):
-            s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
-            s.user = s._username_input.text()
-            s.pas = s._password_input.text()
+            try:
+                s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
             
-            (seed_phrase, address) = create_seed()
 
-            send(f"REG>{s.user}>{s.pas}>{address}", s._skt)
+                s.user = s._username_input.text()
+                s.pas = s._password_input.text()
+                
+                (seed_phrase, address) = create_seed()
 
-            result = receive_buffer(s._skt)
-            if result==REG_MSG:
-                # show the seed phrase
+                send(f"REG>{s.user}>{s.pas}>{address}", s._skt)
+                write_to_log(f"REG>{s.user}>{s.pas}>{address}")
+
+                result = receive_buffer(s._skt)
+                print(result)
+                if result[1]==REG_MSG:
+                    # show the seed phrase
+
+                    while s._reg_layout.count():# remove all widgets from the current layout
+                        item = s._reg_layout.takeAt(0)
+                        widget = item.widget()
+                        if widget:
+                            widget.setParent(None)  # Remove the widget from the current layout
+
+
+                    seed_write_label = QLabel("Write this backup phrase down, never send\n it to anyone, it is needed in case of emergency", s._reg_central_wid)
+                    seed_write_label.setStyleSheet("font: bold 15px; border:none; ")
+                    seed_write_label.setAlignment(Qt.AlignCenter)
+
+                    spl:list = seed_phrase.split(" ") # ,ake the seed phrase two lines
+                    spl.insert(6,"\n")
+                    seed_phrase = " ".join(spl)
+
+                    seed_label = QLabel(seed_phrase, s._reg_central_wid)
+                    seed_label.setStyleSheet("background-color: white; font: bold 16px")
+                    seed_label.setAlignment(Qt.AlignCenter)
+
+                    ok_button = QPushButton("Ok")
+                    ok_button.clicked.connect(s._reg_window.close)
+                    ok_button.setFixedSize(100,30)
+                    ok_button.setStyleSheet("background-color: #000080; color: white; ")
+                    
+
+                    s._reg_layout.addWidget(seed_write_label)
+                    s._reg_layout.addWidget(seed_label)
+                    s._reg_layout.addWidget(ok_button, alignment=Qt.AlignCenter)
+                    s._reg_layout.insertSpacing(1,5)
+                    s._reg_layout.insertSpacing(2,15)
+                    s._reg_layout.insertSpacing(4,15)
+                    s._reg_central_wid.setLayout(s._reg_layout)
+                    
+                    with open("phrases/"+s.user+".bin", "wb") as file: # save the phrase encrypted
+                        file.write(encrypt_data(seed_phrase.encode(), s.pas))
+                    
+                    
+                    return
+                elif s._err_label==None: # if no error label
+                    
+                    s._err_label = QLabel(result[1], s._reg_central_wid)
+                    s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+                    s._reg_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
+                
+                elif s._err_label.text()!=result[1]: # if already is error label but different error
+                    s._err_label.setText(result[1])
+                
+            except Exception:
+                if s._err_label==None:
+                    s._err_label = QLabel("Couldnt connect to node", s._reg_central_wid)
+                    s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+                    s._reg_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
+                    
+                elif s._err_label!="Couldnt connect to node":
+                    s._err_label.setText("Couldnt connect to node")
+                
                 
 
-                with open(s.user, "wb") as file: # save the phrase
-                    file.write(encrypt_data(seed_phrase, s.pas))
                 
 
 
@@ -645,7 +729,13 @@ class ClientGUI:
 
     
     def __close_main(s):
+
         s._window.close()
+        if s._login_window!=None:
+            s._login_window.close()
+        
+        if s._reg_window!=None:
+            s._reg_window.close()
     
     def draw(s):
         app = QApplication([])

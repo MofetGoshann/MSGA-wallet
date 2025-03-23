@@ -410,10 +410,7 @@ class Miner:
         while s.__connected:
 
             result = s.__start_mining(conn, pend_conn) #  header, time, ist
-            if result[0]==False: # if block came earlier
-                ermsg = result[1]
-            
-            else: # mined successfully
+            if result[0]==True: # if block came earlier
                 write_to_log(f"Sent the block {s.__lastb+1} to node ")
                 s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1]+ ">"+ result[2]).encode()) # broadcast to everyone
                 #stall till got confirmation
@@ -442,6 +439,7 @@ class Miner:
                     s.__lastb=s.__lastb+1 # update the last block
                     write_to_log(f"Miner / Successully mined and broadcasted the block {s.__lastb}") # log
                 else:
+                    write_to_log(" Miner / Failed to send mined block")
                     s.disconnect()
         print("be")
     

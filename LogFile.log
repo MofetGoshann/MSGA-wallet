@@ -1,7 +1,13 @@
-2025-03-22 16:21:17,973 - INFO -   Node    · starting
-2025-03-22 16:21:17,975 - INFO - Current block is 92, with the difficulty of 6
-2025-03-22 16:21:17,976 - INFO -   Node    · listening on 0.0.0.0
-2025-03-22 16:25:54,405 - INFO -   Protocol  · Buffer size : 11
-2025-03-22 16:25:54,405 - INFO -   Protocol  · Buffer data : LOGIN>fg>fg
-2025-03-22 16:25:54,406 - INFO -   Protocol  · Buffer size : 33
-2025-03-22 16:25:54,406 - INFO -   Protocol  · Buffer data : Error, wrong username or password
+2025-03-23 23:59:26,930 - INFO -   Node    · starting
+2025-03-23 23:59:26,932 - INFO - Current block is 92, with the difficulty of 6
+2025-03-23 23:59:26,933 - INFO -   Node    · listening on 0.0.0.0
+2025-03-23 23:59:34,208 - INFO -   Protocol  · Buffer size : 50
+72969389b14930b682
+2025-03-23 23:59:34,208 - INFO -   Protocol  · Buffer data : REG>iiii>ii>RRd27f3018ae12bcab4172969389b14930b682
+2025-03-23 23:59:34,218 - INFO -   Protocol  · Buffer size : 31
+2025-03-23 23:59:34,218 - INFO -   Protocol  · Buffer data : Successfully registered, enjoy!
+2025-03-24 00:00:14,697 - INFO -   Protocol  · Buffer size : 6
+2025-03-24 00:00:14,697 - INFO -   Protocol  · Buffer data : iiii>1
+2025-03-24 00:00:14,697 - INFO -  \u8def Client \u8def ('127.0.0.1', 49955) connected
+2025-03-24 00:00:14,697 - INFO -  Node / Active connection 1
+2025-03-24 00:00:14,697 - INFO - Node / New client : iiii connected

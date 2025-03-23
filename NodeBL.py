@@ -239,13 +239,19 @@ class NodeBL:
         cursor = s._conn.cursor()
 
         cursor.execute('''
-            SELECT 1 FROM users WHERE username = ? AND pass = ?
-        ''', (user,pas))
+            SELECT uId FROM users WHERE username = ? AND pass = ?
+        ''', (user, pas))
         
-        check = cursor.fetchone()
+        id = cursor.fetchone()
 
-        if check:
-            send(LOG_MSG, skt)
+        if id:
+            cursor.execute('''
+            SELECT address FROM balances WHERE uId = ?
+            ''', (id[0], ))
+
+            adr = cursor.fetchone()[0]
+
+            send(LOG_MSG+">"+adr, skt)
             return True
         send("Error, wrong username or password", skt)
         return False

@@ -14,18 +14,19 @@ import socket
 
 class ClientBL:
 
-    def __init__(self, ip: str, port: int, username:str, pas:str, skt:socket):
+    def __init__(self, ip: str, port: int, username:str, pas:str, skt:socket, show_err):
         # Here will be not only the init process of data
         # but also the connect event
-
+        self.show_error = show_err
         self._socket_obj: socket = None
         self.__user = username
         self.__pass = pas
         self.__recieved_message:str = None
         self._last_error = ""
         self.__nonce = {'SNC': 1}
-        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "COLR", "MSGA", "52C", "GMBL", "MGR", "RR"]
+        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         self._recvfunc =None #recv_callback
+        
         self._success = self.__connect(ip, port, skt)
 
     def __connect(self, ip: str, port: int, skt) -> bool:
@@ -37,8 +38,10 @@ class ClientBL:
             # let the node know im a client. 1 is client type
             # self.__lastb = chain_on_start("Client", self._socket_obj)
             send(self.__user + ">1", self._socket_obj)
+            
             #always recieve data from node
             self.__always_recieve()
+            self._lastb = chain_on_start(skt)
             # Log the data
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
 
@@ -49,6 +52,7 @@ class ClientBL:
 
             # Handle failure
             self._socket_obj = None
+            self.show_error("Error in __conect func", f"failed to connect client; ex:{e}")
             write_to_log(f" 路 Client 路 failed to connect client; ex:{e}")
 
             self._last_error = f"An error occurred in client bl [connect function]\nError : {e}"
@@ -84,11 +88,12 @@ class ClientBL:
 
             # Handle failure
             write_to_log(f" 路 Client 路 failed to disconnect : {e}")
+            
             self._last_error = f"An error occurred in client bl [disconnect function]\nError : {e}"
-
+            self.show_error("Error in disconect func", self._last_error)
             return False
 
-    def assemble_transaction(self, token: str, amount: float, rec_address: str): # , private_key: SigningKey
+    def assemble_transaction(self, token: str, amount: float, rec_address: str): # 
         '''gets the transaction info and assembles transaction ready to send
         (time, sender, reciever, amount, token, hexedsignature, hexedpublickey)'''
         time = datetime.now().strftime(f"%d.%m.%Y %H:%M:%S")
@@ -96,7 +101,8 @@ class ClientBL:
         
         
         try:
-            with open(self.__user+".bin", "rb") as file: # save the phrase encypted
+            
+            with open(self.__user+".bin", "rb") as file: # user the private key
                 enc_phrase = file.read()
             
             phrase = decrypt_data(enc_phrase, self.__pass)
@@ -107,19 +113,30 @@ class ClientBL:
 
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
             addres = address_from_key(public_key)
-            
-            transaction = f"({self.__nonce[token]}, '{str(time)}', '{addres}', '{rec_address}', {amount}, '{token}')"
+
+            conn = sqlite3.connect(f'databases/Client/blockchain.db')
+            cursor = conn.cursor()
+
+            cursor.execute(f'''
+            SELECT nonce from balances WHERE token = ? AND address = ?
+            ''', (token, addres))
+            nonce = cursor.fetchone()[0]
+            conn.close()
+
+            transaction = f"({nonce}, '{str(time)}', '{addres}', '{rec_address}', {amount}, '{token}')"
+
             signature = private_key.sign_deterministic(transaction.encode(), hashfunc=sha256 ,sigencode=sigencode_string)
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            wholetransaction = f"({self.__nonce[token]}, '{time}', '{self.__c_address}', '{rec_address}', {amount}, '{token}', '{hexedsig}', '{hexedpub}')"
+            wholetransaction = f"({nonce}, '{time}', '{addres}', '{rec_address}', {amount}, '{token}', '{hexedsig}', '{hexedpub}')"
 
             return wholetransaction
 
         except Exception as e:
             write_to_log(f" 路 Client 路 failed to assemble transaction {e}")
             self._last_error = f"An error occurred in client bl [assemble_transaction function]\nError : {e}"
+            self.show_error("Error in assemble_transaction func", self._last_error)
 
             return False
     
@@ -144,6 +161,7 @@ class ClientBL:
             # Handle failure
             write_to_log(f" 路 Client 路 failed to send to server {e}")
             self._last_error = f"An error occurred in client bl [send_data function]\nError : {e}"
+            self.show_error("Error in send_transaction func", self._last_error)
 
             return False
 
@@ -159,6 +177,7 @@ class ClientBL:
             # Handle failure
             write_to_log(f" Client / failed to receive from server : {e}")
             self._last_error = f"An error occurred in client bl [receive_data function]\nError : {e}"
+            self.show_error("Error in recieve_data func", self._last_error)
             return ""
 
 
@@ -171,6 +190,7 @@ class ClientBL:
             listening_thread.start()
         except Exception as e:
             self._last_error = f"Error in client bl [always recieve function]\nError : {e}"
+            self.show_error("Error in __always_recieve func", self._last_error)
             write_to_log(f" 路 Client 路 always recieve thread not working; {e}")
 
     
@@ -189,32 +209,13 @@ class ClientBL:
 
             s.__recieved_message = s.__receive_data() # update 
             msg = s.__recieved_message
-            """
-            if self.__recieved_message and self.__recieved_message.startswith(REG_MSG):
 
-                key = self.__recieved_message[REG_MSG.__len__():]
-
-                if key:
-                    with open("ClientBLregkeys.txt", 'a') as file: # save the key in a textfile
-                        file.write(key + "\n")
-
-                    self._recvfunc(REG_MSG) #insert the message into the gui
-                else:
-                    write_to_log(" 路 Client 路 Failed to save to text file, key not identified")
-
-            else: 
-            #    self._recvfunc(self.__recieved_message) #insert the message into the gui
-            """
             if not msg==None:
                 if msg==KICK_MSG:
                     discsuccess = s.disconnect() # disconnect the client from server
                     
                     if discsuccess: # confirm diconnect
                         write_to_log(f" 路 Client 路 You have been been kicked")
-
-                    else: # if doesnt diconnect
-                        s._last_error = f"Error in client bl [always_listen function], failed to diconnect client when kicked by server"
-                        write_to_log(f" 路 Client 路 Failed to diconnect the client when kicked by server")
 
                     connected = False # close loop
                 
@@ -226,11 +227,22 @@ class ClientBL:
                     header = msg.split(">")[1]
                     (suc,  bl_id) =  recieve_block(header, "Client", s._socket_obj)
                     if suc:
-                        s.__lastb = bl_id
+                        s._lastb = bl_id
                     #got a block from the miner
                 
                 if msg==GOOD_TRANS_MSG:
                     print("qweqweqweqweqweqwe")
+                
+                if msg.startswith(CHAINUPDATING): # if updating the local chain
+                    result = saveblockchain(msg, s._socket_obj, conn)
+                    if result!=False:
+                        s._lastb = result
+                        write_to_log(f" Miner / Updated chain, last block: {s._lastb}")
+                    
+                    else:
+                        s._last_error = "Cannot connect to blockchain"
+                        print("nono")
+                        s.disconnect()
 
 
     
@@ -245,7 +257,61 @@ class ClientBL:
     
     def get_last_error(s):
         return s._last_error
-        
+
+def chain_on_start(skt:socket):
+
+    conn = sqlite3.connect(f'databases/Client/blockchain.db')
+    cursor = conn.cursor()
+
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS blocks (
+            block_id INT PRIMARY KEY NOT NULL,
+            block_hash VARCHAR(64) NOT NULL,
+            previous_block_hash VARCHAR(64),
+            merkle_root VARCHAR(64) NOT NULL,
+            timestamp VARCHAR(24) NOT NULL,
+            difficulty INT NOT NULL,
+            nonce INT NOT NULL
+        )
+        ''')
+
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+            block_id INT NOT NULL,
+            nonce INT NOT NULL,
+            timestamp VARCHAR(24) NOT NULL,
+            sender VARCHAR(64) NOT NULL,
+            reciever VARCHAR(64) NOT NULL,
+            amount REAL NOT NULL,
+            token VARCHAR(12) NOT NULL,
+            hex_pub_key VARCHAR(256) NOT NULL,
+            hex_signature VARCHAR(256) NOT NULL
+        )
+        ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS balances (
+            address VARCHAR(64) NOT NULL,
+            balance REAL NOT NULL,
+            token VARCHAR(12) NOT NULL,
+            nonce INT NOT NULL
+        )
+        ''')  
+
+    
+    cursor.execute('''
+        SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
+        ''')
+
+    lastb_id = cursor.fetchone()[0] # get the last block
+
+    if lastb_id:
+        skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())
+        return lastb_id
+    else:
+        skt.send(format_data(CHAINUPDATEREQUEST + f">{0}").encode())
+        return 0
                 
                 
             

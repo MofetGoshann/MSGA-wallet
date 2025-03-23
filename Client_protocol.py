@@ -18,7 +18,7 @@ from protocol import *
 
 
 NEW_USER = "New user just registered, address: "
-DEFAULT_PORT =13333
+DEFAULT_PORT =12222
 
 def send(msg, skt: socket):
     skt.send(format_data(msg).encode())
@@ -140,13 +140,13 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
             write_to_log(f" protocol / failed to send a block with index {blockid}")
             return False
 
-def recieve_trs(skt: socket, typpe:str, conn: sqlite3.Connection):
+def recieve_trs(skt: socket, conn: sqlite3.Connection):
     '''
     recieves a blocks transactions
     returns true if all are saved 
     returns false if had errors saving
     '''
-    conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
+    conn = sqlite3.connect(f'databases/Client/blockchain.db')
     cursor = conn.cursor()
 
     recieving =True
@@ -171,14 +171,14 @@ def recieve_trs(skt: socket, typpe:str, conn: sqlite3.Connection):
         write_to_log(f" protocol / error in saving/recieving the transactions of the block ; {e}")
         return False
 
-def recieve_block(header:str, typpe:str, skt:socket)->bool:
+def recieve_block(header:str, skt:socket)->bool:
     '''
     saves the block and the transactions in the database
     '''
     success = True
     try:
         #conncet to the database
-        conn = sqlite3.connect(f'databases/{typpe}/blockchain.db')
+        conn = sqlite3.connect(f'databases/Client/blockchain.db')
         cursor = conn.cursor()
 
         head_str = header.split(">")[1] # get the string version of the header data
@@ -207,7 +207,7 @@ def recieve_block(header:str, typpe:str, skt:socket)->bool:
                 ''')
         conn.commit()
 
-        success =  recieve_trs(skt, typpe, conn) # store the transactions of the block
+        success =  recieve_trs(skt, conn) # store the transactions of the block
         if success:
             send(SAVEDBLOCK,skt)
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 

@@ -16,7 +16,7 @@ from protocol import *
 
 
 NEW_USER = "New user just registered, address: "
-DEFAULT_PORT =13333
+DEFAULT_PORT =12222
 
 
 def check_address(address):

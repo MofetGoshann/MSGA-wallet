@@ -185,12 +185,9 @@ def create_seed(password: str, user:str):
     return seed
 
 trans_no_sig = "(3, '24.02.2025 10:02:52', 'zxc', 'qwe', 14.88, 'SNC')"
-p_key = create_keys()[0]
-
-pub_key = p_key.get_verifying_key()
-
-addres = address_from_key(pub_key)
-print(addres)
+entropy = os.urandom(16)
+mnemonic = bip39.encode_bytes(entropy)
+print(mnemonic)
 
 
 

@@ -7,7 +7,32 @@ import traceback
 
 
 NEW_USER = "New user just registered, address: "
+DEFAULT_IP: str = "0.0.0.0"
 DEFAULT_PORT = 12222
+
+DISCONNECT_MSG = "EXIT"
+KICK_MSG = "You have been kicked."
+LOG_FILE: str = "LogFile.log"
+FORMAT: str = "utf-8"
+LOG_MSG = "Successfully logged in."
+REG_MSG = "Successfully registered, enjoy!"
+BAD_TRANS_MSG = "Transaction you sent has failed verification"
+byte_decode_error = "'utf-8' codec can't decode byte"
+BLOCKSENDMSG = "Sending block..."
+MINEDBLOCKSENDMSG = "Sending mined block"
+BLOCKSTOPMSG = "Stop recieving transactions"
+CHAINUPDATEREQUEST = "Can you send me the blockchain from block"
+CHAINUPDATING = "Sending the blocks"
+SAVEDBLOCK = "Saved the whole block"
+ALREADYUPDATED = "You have the whole blockchain"
+WRONGID = "There is no blocks after this id"
+FAILEDTOSAVEBLOCK = "Could not save the block"
+GOOD_TRANS_MSG = "Transaction verified"
+TRANS = "Transaction:"
+
+DEFAULT_IP: str = "0.0.0.0"
+BUFFER_SIZE: int = 1024
+HEADER_SIZE = 4
 
 def check_address(address):
 
@@ -41,7 +66,7 @@ def receive_buffer(my_socket: socket) -> (bool, str):
         return True, buffer.decode()
     except Exception as e:
         # On buffer size convert fail
-        return False, "Error"    
+        return False, ""    
     
 
 def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
@@ -67,17 +92,16 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
         
         trans_list = cursor.fetchall()
         
-        
+        send(BLOCKSENDMSG+">"+str(block_header), skt) # sending the starter 
         if trans_list: # if block has transactions
-            send(format_data(BLOCKSENDMSG+">"+str(block_header)+">1").encode(), skt) # sending the starter with tr in mind
+            
             for tr in trans_list: # sending all the transactions
                 #tr in tuple type
                 t= str(tr)
-                send(format_data(t).encode(),skt)
-        else:
-            send(format_data(BLOCKSENDMSG+">"+str(block_header)+">2").encode(), skt) # sending the starter 2 is without transactions
+                send(t ,skt)
+
             
-        send(format_data(BLOCKSTOPMSG).encode(), skt)
+        send(BLOCKSTOPMSG, skt)
         return True
         
 def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connection):
@@ -98,12 +122,12 @@ def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connect
     
     trans_list = cursor.fetchall()
     if trans_list: # if valid
-        send(MINEDBLOCKSENDMSG+">" +block_header + ">" + str(diff).encode(), skt) # sending the starter
+        send(MINEDBLOCKSENDMSG+">" +block_header + ">" + str(diff), skt) # sending the starter
         for tr in trans_list: # sending all the transactions
             #tr in tuple type
             t= str(tr)
-            send(format_data(t).encode(),skt)
-        send(format_data(BLOCKSTOPMSG).encode(), skt)
+            send(t,skt)
+        send(BLOCKSTOPMSG, skt)
 
         return True
         
@@ -113,6 +137,7 @@ def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connect
         return False
 
 def send(msg, skt: socket):
+    write_to_log(" Node / Sending message: "+msg)
     skt.send(format_data(msg).encode())
 
 
@@ -121,7 +146,7 @@ def send(msg, skt: socket):
 
     
 
-def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
+def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
     '''
     saves the block and the transactions in the database
     '''
@@ -129,7 +154,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
     try:
         #create cursor
         cursor = conn.cursor()
-
+        conn.commit()
         head_str = header # get the string version of the header data
         header_tuple  = ast.literal_eval(head_str)
         id = header_tuple[0] 
@@ -138,14 +163,21 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
         cursor.execute('''
             SELECT block_id, block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
             ''')
-        lastb_id, prev_hash = cursor.fetchone() # get the last block
+        c = cursor.fetchone()
+        if c:
+            lastb_id, prev_hash = c # get the last block
         
-        if id!=lastb_id+1: # check the block_id
-            send(format_data("Block id is invalid").encode(), skt)
-            return False, "Block id is invalid"
+            if id!=lastb_id+1: # check the block_id
+                send(format_data("Block id is invalid").encode(), skt)
+                return False, "Block id is invalid"
+            
+            if  header_tuple[2]!=prev_hash:
+                send(format_data("Block hash is invalid").encode(), skt)
+                return False, "Block hash is invalid"
+            
         head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
 
-        if hashex(hashex(head_no_hash))!=header_tuple[1] or header_tuple[2]!=prev_hash: # check the hash
+        if hashex(hashex(head_no_hash))!=header_tuple[1]: # check the hash
             send(format_data("Header hash is invalid").encode(), skt)
             return False, "Header hash is invalid"
         
@@ -157,8 +189,6 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
                 ''')
         conn.commit()
 
-        if tr=="2": # the block has no transactions
-            return True, id
         
         success =  recieve_trs(skt, conn) # store the transactions of the block
         if success:
@@ -182,7 +212,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket, tr)->bool:
         #log the exception
         write_to_log(f" protocol / couldnt save the block header; {e}")
         traceback.print_exc()
-        return False
+        return False, ""
   
 def recieve_trs(skt: socket, conn: sqlite3.Connection):
     '''

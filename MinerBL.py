@@ -13,6 +13,7 @@ import json
 import os
 import ast
 import traceback
+import random
 
 class Block:
 
@@ -47,31 +48,30 @@ class Miner:
 
 
 
-    def __init__(self, ip:str, port: int, username:str):
+    def __init__(self, username:str, address, skt):
     
-        self._socket_obj: socket = None
+        self._socket_obj: socket = skt
         self.__recieved_message = ""
         self.__user = username
+        self.__address = address
         self.__lastb = None
+        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "COLR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         self.__mining = False
         self.__diff = 0
         self.__connected = False
         self._conn = sqlite3.connect(f'databases/Miner/blockchain.db')
         self._pend_conn  = sqlite3.connect(f'databases/Miner/pending.db')
-        suc = self.__connect(ip, port)
+        suc = self.__connect()
         
     
-    def __connect(self, ip:str, port:int):
+    def __connect(self):
         #connect the miner to the hub/server
 
         try:
             # Create and connect socket to the hub
-            self._socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket_obj.connect((ip, port))
-
             
             # let the hub know im a miner and give the block id to update
-            self._socket_obj.send(format_data(self.__user + ">2").encode())
+            send(self.__user + ">2", self._socket_obj)
             #always recieve data from server to know if kicked
             self.__always_recieve()
             self.__lastb = miner_on_start(self._socket_obj, self._conn, self._pend_conn)
@@ -246,8 +246,9 @@ class Miner:
             if msg.startswith(CHAINUPDATING): # if updating the local chain
                 self.__diff = msg.split(">")[2]
                 result = saveblockchain(msg, self._socket_obj, conn)
-                if result!=False:
-                    self.__lastb = result
+                if result[0]!=False:
+                    self.__lastb = result[0]
+
                     write_to_log(f" Miner / Updated chain, diff: {self.__diff}")
                 
                 else:
@@ -281,7 +282,9 @@ class Miner:
         trans_list :list[tuple]= cursor.fetchall()
 
         for t in trans_list:
+            
             if calculate_balik_one(str(t), conn)[0]==False:
+                write_to_log("")
                 break
 
 
@@ -354,22 +357,31 @@ class Miner:
             
             
     def __start_mining(s, conn : sqlite3.Connection, connp):
-
+        
         chaincursor = conn.cursor()
-        print(f" Miner / Mining block {s.__lastb+1} ", end="", flush=True)
+        cursorp = connp.cursor()
+
+        token = s.tokenlist[random.randint(1,10)] # get a random token
+        print(f" Miner / Mining block {s.__lastb+1}, reward in {token}", end="", flush=True)
         try:
-            
-            diff = s.__diff
+            mined_time = datetime.now().strftime(tm_format)
+            diff = s.__diff # set the diff
+            # insert the reward transaction
+            cursorp.execute(f'''
+            INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (0, mined_time, "0"*64, s.__address, 100, token, "0"*64, "0"*64))
+            connp.commit()
+
             merkle_root = s.build_merkle_tree(connp) # build the root
-            ist = "1"
-            if merkle_root==hashex("0"*64): # if the root is zeros, no transactions in the block
-                ist="2"
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
             ''')
             p_hash = chaincursor.fetchone() # previous hash of the next block
+            
+            
             if p_hash==None: # if the first block
                 p_hash="0"*64
+
             s.__mining = True
             nonce = 0
             thisb = s.__lastb+1
@@ -390,7 +402,7 @@ class Miner:
                     full_block_header = f"({thisb}, '{hash}', '{p_hash[0]}', '{merkle_root}', '{timestamp}', {diff}, {nonce})"
                     mine_time = time.time() - start_time
                     print("\n")
-                    return full_block_header, str(round(mine_time, 2)), ist # return the header with the hash
+                    return full_block_header, str(round(mine_time, 2)), mined_time # return the header with the hash
 
                 else: 
                     nonce+=1 # increase the nonce
@@ -410,9 +422,9 @@ class Miner:
         while s.__connected:
 
             result = s.__start_mining(conn, pend_conn) #  header, time, ist
-            if result[0]==True: # if block came earlier
+            if result[0]!=False: # if block came earlier
                 write_to_log(f"Sent the block {s.__lastb+1} to node ")
-                s._socket_obj.send(format_data(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1]+ ">"+ result[2]).encode()) # broadcast to everyone
+                send(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1], s._socket_obj) # broadcast to everyone
                 #stall till got confirmation
                 res = send_mined(result[0], s._socket_obj, pend_conn, s.__lastb+1)
                 if res[0]==True:
@@ -432,16 +444,22 @@ class Miner:
                     
                     s.__recieved_message = ""
                     update_mined_block(conn, pend_conn,result[0]) # update the transactions in local chain
-
-                    if result[2]=="1": # update balances only if there are transactions in the block
-                        s.update_balances(conn) # update the balances
-                        
                     s.__lastb=s.__lastb+1 # update the last block
+                    s.update_balances(conn) # update the balances
+                        
+                    
                     write_to_log(f"Miner / Successully mined and broadcasted the block {s.__lastb}") # log
-                else:
+                else: # delete the miners transaction on error
+                    cursorp = pend_conn.cursor()
+                    cursorp.execute("""
+                    DELETE FROM transactions WHERE timestamp = ?                  
+                      """, (result[2],))
+                    cursorp.commit()
+
                     write_to_log(" Miner / Failed to send mined block")
                     s.disconnect()
-        print("be")
+            else:
+                write_to_log("Failed; "+result[1])
     
    
 

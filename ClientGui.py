@@ -107,12 +107,6 @@ class DraggableTitleBar(QLabel):
         s.minimize_button.setStyleSheet("color: white")
         s.minimize_button.clicked.connect(s.__minimize)
         title_login_layout.addWidget(s.minimize_button)
-        # Maximize button
-        s.maximize_button = QPushButton("□")
-        s.maximize_button.setStyleSheet("color: white")
-        s.maximize_button.setFixedSize(25, 25)
-        s.maximize_button.clicked.connect(s.__maximize)
-        title_login_layout.addWidget(s.maximize_button)
 
         # Close button
         s.close_button = QPushButton("✕")
@@ -144,12 +138,7 @@ class DraggableTitleBar(QLabel):
     def __minimize(s):
         s.parent().showMinimized()
     
-    def __maximize(s):
-        if s.parent().isMaximized():
-            s.parent().showNormal()  # Restore to normal size
 
-        else:
-            s.parent().showMaximized()  # Maximize the window
 
     
     def __close_main(s):
@@ -478,37 +467,6 @@ class ClientGUI:
         s.title_bar = DraggableTitleBar("XP Wallet", s._window)
         s.title_bar.setStyleSheet("background-color: #000080; border-radius: 2 2 0 0")
         
-        '''
-        # Title bar layout
-        title_login_layout = QHBoxLayout(s.title_bar)
-        title_login_layout.setContentsMargins(5, 0, 5, 0)
-
-        # Title label
-        s.title_label = QLabel("My XP-Style App")
-        s.title_label.setStyleSheet("color: white; font: bold 14px;")
-        title_login_layout.addWidget(s.title_label)
-        
-
-        # Minimize button
-        s.minimize_button = QPushButton("─")
-        s.minimize_button.setFixedSize(25, 25)
-        s.minimize_button.setStyleSheet("color: white")
-        s.minimize_button.clicked.connect(s.__minimize)
-        title_login_layout.addWidget(s.minimize_button)
-
-        s.maximize_button = QPushButton("□")
-        s.maximize_button.setStyleSheet("color: white")
-        s.maximize_button.setFixedSize(25, 25)
-        s.maximize_button.clicked.connect(s.__maximize)
-        title_login_layout.addWidget(s.maximize_button)
-
-        # Close button
-        s.close_button = QPushButton("✕")
-        s.close_button.setFixedSize(25, 25)
-        s.close_button.setStyleSheet("color: white")
-        s.close_button.clicked.connect(s.__close_main)
-        title_login_layout.addWidget(s.close_button)
-        '''
         s.title_bar.setGeometry(0,0,s._back_img_size[0],30)
         s.title_bar.raise_()
         s._taskbar.setGeometry(0,s._back_img_size[1]+28,s._back_img_size[0],s._start_img_size[1])
@@ -525,6 +483,14 @@ class ClientGUI:
         s._reg_cut = DesktopShortcut(LOGIN_ICON, "Register", s.openreggui, s._back_label)
         s._reg_cut.setFixedSize(86,86)
 
+        s._balance_cut = DesktopShortcut(REG_ICON, "Balance",s.openbalances ,s._central_widget)
+        s._balance_cut.setFixedSize(86,80)
+
+        s._history_cut = DesktopShortcut(LOGIN_ICON, "History", s.openreggui, s._central_widget)
+        s._history_cut.setFixedSize(86,80)
+
+        s._cut_login_layout.addWidget(s._balance_cut)
+        s._cut_login_layout.addWidget(s._history_cut)   
         s._cut_login_layout.addWidget(s._login_cut)
         s._cut_login_layout.addWidget(s._reg_cut)      
         s._back_label.setLayout(s._cut_login_layout)
@@ -683,10 +649,9 @@ class ClientGUI:
 
                 private_key_bytes = hashlib.sha256(seed).digest()
                 private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
-                public_key = private_key.get_verifying_key()
 
                 s._login_window.close() # close the login window
-                s.__connect_event(s.user, public_key, s._skt)
+                s.__connect_event(s.user, private_key, s._skt)
 
                 return
 
@@ -917,9 +882,9 @@ class ClientGUI:
 
         private_key_bytes = hashlib.sha256(seed).digest()
         private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
-        public_key = private_key.get_verifying_key()
+        print(type(private_key))
         s._reg_window.close()
-        s.__connect_event(s.user, public_key, s._skt)    
+        s.__connect_event(s.user, private_key, s._skt)    
 
     def openbalances(s):
         s._balance_window = QMainWindow()
@@ -930,7 +895,7 @@ class ClientGUI:
         s._balance_window.setFixedSize(600, 400)
 
         # Create a central widget
-        s._balance_central_wid = QWidget(s)
+        s._balance_central_wid = QWidget(s._balance_window)
         s._balance_central_wid.setStyleSheet(
             "background-color: #ece9d8; border: 4px solid #000080; border-radius: 2px;"
         )
@@ -954,18 +919,27 @@ class ClientGUI:
         token_layout = QGridLayout()
         
         conn = sqlite3.connect(f'databases/Client/blockchain.db')
-        s._client.conn
+        cursor = conn.cursor()
+
+        address = s._client.get_address()
+        cursor.execute('''
+        SELECT balance from balances WHERE address = ?
+        ''', (address, ))
+
+        balances = cursor.fetchall()
 
         # Add tokens to the grid layout
         for index, token_name in enumerate(s.tickerlist):
             row = index // 2  # Two tokens per row
             col = index % 2   # Two columns
+
             full_name = s.token_name_list[index]
+            balance = balances[index][0]
             # Create a label with styled text
             token_label = QLabel()
             token_label.setText(
                 f'<span style="background-color: #000080; color: white; font-weight: bold; padding: 2px;">${token_name}</span> '
-                f'<span style="color: black;">({full_name}):</span>'
+                f'<span style="color: black;">({full_name}): {balance}</span>'
             )
             token_label.setStyleSheet("font: bold 14px; border: none; padding: 5px;")
             token_layout.addWidget(token_label, row, col)
@@ -996,14 +970,9 @@ class ClientGUI:
         main_layout.addLayout(button_layout)
 
         # Set the main layout for the central widget
-        s.central_wid.setLayout(main_layout)
+        s._balance_central_wid.setLayout(main_layout)
 
-
-
-
-
-
-
+        s._balance_window.show()
 
 
 
@@ -1035,13 +1004,13 @@ class ClientGUI:
         app.exec_()
     
     
-    def __connect_event(s, user,  p_key: VerifyingKey, skt):
+    def __connect_event(s, user,  p_key: SigningKey, skt):
 
 
         try:
             # Handle failure on casting from string to int
 
-            s._client: ClientBL= ClientBL(DEFAULT_IP ,DEFAULT_PORT, user, p_key, skt, s.show_error)
+            s._client: ClientBL= ClientBL(user, p_key, skt, s.show_error)
 
             # check if we successfully created socket
             # and ready to go
@@ -1051,7 +1020,7 @@ class ClientGUI:
                 s._reg_cut.setParent(None)
                 s._login_cut.setParent(None)
 
-                s._balance_cut = DesktopShortcut(REG_ICON, "Balance", s.openlogingui ,s._central_widget)
+                s._balance_cut = DesktopShortcut(REG_ICON, "Balance",s.openbalances ,s._central_widget)
                 s._balance_cut.setFixedSize(86,80)
 
                 s._history_cut = DesktopShortcut(LOGIN_ICON, "History", s.openreggui, s._central_widget)
@@ -1067,7 +1036,7 @@ class ClientGUI:
             # If our problem occurred before the client
             # mean that our client will be None
             error = s._client and s._client.get_last_error() or e
-
+            traceback.print_exc()
             write_to_log(f" 路 Client GUI 路 an error has occurred : {error}")
             messagebox.showerror("Error on Connect", error)
     

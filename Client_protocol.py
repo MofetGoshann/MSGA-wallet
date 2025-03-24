@@ -15,12 +15,15 @@ import bip39
 import time 
 import ast
 from protocol import *
+import traceback
 
 
 NEW_USER = "New user just registered, address: "
+DEFAULT_IP: str = "0.0.0.0"
 DEFAULT_PORT =12222
 
 def send(msg, skt: socket):
+    write_to_log(" Client / Sending message: "+msg)
     skt.send(format_data(msg).encode())
 
 def create_seed():
@@ -102,7 +105,7 @@ def decrypt_data(encrypted_data: bytes, password: str) -> bytes:
     decrypted_data = fernet.decrypt(encrypted_data)
     return decrypted_data
 
-def send_block(blockid: int, skt :socket, type:str) -> bool:
+def send_block(blockid: int, skt :socket) -> bool:
     '''
     sends a block with a specific index to a socket
     returns true if sent all without problems
@@ -110,7 +113,7 @@ def send_block(blockid: int, skt :socket, type:str) -> bool:
     '''
     
 
-    conn = sqlite3.connect(f"databases/{type}/blockchain.db") # client/node/miner
+    conn = sqlite3.connect(f"databases/Client/blockchain.db") # client/node/miner
     cursor = conn.cursor()
     #getting the block header
     cursor.execute(f'''

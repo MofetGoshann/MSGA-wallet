@@ -14,22 +14,22 @@ import socket
 
 class ClientBL:
 
-    def __init__(self, ip: str, port: int, username:str, pas:str, skt:socket, show_err):
+    def __init__(self, username:str, private_key: SigningKey, skt:socket, show_err):
         # Here will be not only the init process of data
         # but also the connect event
         self.show_error = show_err
         self._socket_obj: socket = None
         self.__user = username
-        self.__pass = pas
+        self.__private_key = private_key
+        self.__address = address_from_key(self.__private_key.get_verifying_key())
         self.__recieved_message:str = None
         self._last_error = ""
-        self.__nonce = {'SNC': 1}
         self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         self._recvfunc =None #recv_callback
         
-        self._success = self.__connect(ip, port, skt)
+        self._success = self.__connect(skt)
 
-    def __connect(self, ip: str, port: int, skt) -> bool:
+    def __connect(self, skt) -> bool:
         #connect client on start init returns success of connection
 
         try:
@@ -41,7 +41,7 @@ class ClientBL:
             
             #always recieve data from node
             self.__always_recieve()
-            self._lastb = chain_on_start(skt)
+            self._lastb = chain_on_start(self._socket_obj)
             # Log the data
             write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} connected")
 
@@ -54,7 +54,7 @@ class ClientBL:
             self._socket_obj = None
             self.show_error("Error in __conect func", f"failed to connect client; ex:{e}")
             write_to_log(f" 路 Client 路 failed to connect client; ex:{e}")
-
+            traceback.print_exc
             self._last_error = f"An error occurred in client bl [connect function]\nError : {e}"
 
             return False
@@ -101,16 +101,7 @@ class ClientBL:
         
         
         try:
-            
-            with open(self.__user+".bin", "rb") as file: # user the private key
-                enc_phrase = file.read()
-            
-            phrase = decrypt_data(enc_phrase, self.__pass)
-            seed = bip39.phrase_to_seed(phrase)
-
-            private_key_bytes = hashlib.sha256(seed).digest()
-            private_key = SigningKey.from_string(private_key_bytes, NIST256p)
-
+            private_key = self.__private_key
             public_key: ecdsa.VerifyingKey = private_key.get_verifying_key()
             addres = address_from_key(public_key)
 
@@ -258,6 +249,11 @@ class ClientBL:
     def get_last_error(s):
         return s._last_error
 
+    def get_private(s):
+        return s.__private_key
+    
+    def get_address(s):
+        return s.__address
 def chain_on_start(skt:socket):
 
     conn = sqlite3.connect(f'databases/Client/blockchain.db')
@@ -299,19 +295,19 @@ def chain_on_start(skt:socket):
         )
         ''')  
 
-    
+    conn.commit()
     cursor.execute('''
         SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
         ''')
 
-    lastb_id = cursor.fetchone()[0] # get the last block
+    lastb_id = cursor.fetchone() # get the last block
 
     if lastb_id:
-        skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id}").encode())
+        send(CHAINUPDATEREQUEST + f">{lastb_id[0]}", skt)
         return lastb_id
     else:
-        skt.send(format_data(CHAINUPDATEREQUEST + f">{0}").encode())
-        return 0
+        send(CHAINUPDATEREQUEST + f">{1}", skt)
+        return 1
                 
                 
             

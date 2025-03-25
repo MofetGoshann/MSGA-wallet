@@ -40,6 +40,13 @@ def create_seed():
 
     return mnemonic, address_from_key(pub_key)
 
+def is_valid_amount(amount_str):
+    try:
+        float(amount_str)
+        return float(amount_str) > 0  # Also checks positive value
+    except ValueError:
+        return False
+
 def address_from_key(public_key: VerifyingKey):
     hexedpub = binascii.hexlify(public_key.to_string("compressed"))
     
@@ -49,6 +56,23 @@ def address_from_key(public_key: VerifyingKey):
     checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
 
     return "RR" + secdhash.hexdigest() + checksum
+
+def check_address(address):
+
+    if not address.startswith("RR") or len(address) != 38:
+        return False
+    
+    extracted_checksum = address[-4:]  # Last 4 characters
+    address_without_checksum = address[:-4]  # Everything except the last 4 characters
+    
+
+    secdhash_part = address_without_checksum[2:]  # Remove "RR" prefix
+    
+    secdhash_bytes = bytes.fromhex(secdhash_part)  # Convert hex to bytes
+    recomputed_checksum = hashlib.sha256(secdhash_bytes).hexdigest()[:4]
+    
+    # Step 5: Compare the checksums
+    return extracted_checksum == recomputed_checksum
 
 
 def add_new_user(address, tokenlist, conn):
@@ -140,7 +164,7 @@ def send_block(blockid: int, skt :socket) -> bool:
             
         else:
             #the block id is false
-            write_to_log(f" protocol / failed to send a block with index {blockid}")
+            write_to_log(f" ClientP / failed to send a block with index {blockid}")
             return False
 
 def recieve_trs(skt: socket, conn: sqlite3.Connection):
@@ -149,9 +173,8 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
     returns true if all are saved 
     returns false if had errors saving
     '''
-    conn = sqlite3.connect(f'databases/Client/blockchain.db')
     cursor = conn.cursor()
-
+    tr_list = []
     recieving =True
     try:
         skt.settimeout(3) # set timeout and if no data is sent in this time will raise exception to not make endless loop
@@ -159,6 +182,7 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
             (success, transaction) = receive_buffer(skt)
 
             if success: #when recieved a message
+
                 if transaction==BLOCKSTOPMSG: #if all transactions are sent
                     break
                 #store the transaction
@@ -167,78 +191,155 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
                 VALUES {transaction}
                 ''')
                 conn.commit()
+                tr_list.append(transaction)
 
-        return True
+        return True, tr_list
     except Exception as e:
         #handle failure
-        write_to_log(f" protocol / error in saving/recieving the transactions of the block ; {e}")
+        write_to_log(f" ClientP / Error in recieving the transactions of the block ; {e}")
         return False
 
-def recieve_block(header:str, skt:socket)->bool:
+def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
     '''
     saves the block and the transactions in the database
     '''
     success = True
-    try:
-        #conncet to the database
-        conn = sqlite3.connect(f'databases/Client/blockchain.db')
-        cursor = conn.cursor()
+    #try:
+        #create cursor
+    cursor = conn.cursor()
 
-        head_str = header.split(">")[1] # get the string version of the header data
-        header_tuple  = ast.literal_eval(head_str)
-        id = header_tuple[0] 
-
-        # verify the block
-        cursor.execute('''
-            SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
-            ''')
-        lastb_id, prev_hash = cursor.fetchone() # get the last block
-        
-        if id!=lastb_id+1: # check the block_id
-            send("Block id is invalid",skt)
-            return False
-        head_no_hash = "(" +id +str(header_tuple[2:])[1:]
-        if hashex(head_no_hash)!=header_tuple[1] and header_tuple[2]!=prev_hash: # check the hash
-            send("Header hash is invalid",skt)
-            return False
-        
-        
-        #store it in the db
-        cursor.execute(f'''
-                INSERT INTO blocks 
-                VALUES {head_str}
-                ''')
-        conn.commit()
-
-        success =  recieve_trs(skt, conn) # store the transactions of the block
-        if success:
-            send(SAVEDBLOCK,skt)
-            write_to_log(f"Successfully saved the block {id} and its transactions") # log 
-            conn.close()
-            return True # if all saved successfully
-        
-        else: #if all saved unsuccessfully
-            #delete all the wrong saved data
-            cursor.execute(f''' 
-            DELETE FROM blocks WHERE block_id = {id} ''')
-
-            cursor.execute(f'''
-            DELETE FROM transactions WHERE block_id = {id} ''')
-            conn.commit()
-            conn.close()
-            return False
+    head_str = header # get the string version of the header data
+    header_tuple  = ast.literal_eval(head_str)
+    id = header_tuple[0] 
     
+    # verify the block
+    cursor.execute('''
+        SELECT block_id, previous_block_hash FROM blocks ORDER BY block_id DESC LIMIT 1
+        ''')
+    res = cursor.fetchone() # get the last block
+
+    if res == None and id!=1: # if the chain is empty and not getting the first block
+        return False, "Block id is invalid", []
+
+    if res: # if not empty
+        lastb_id, prev_hash = res
+        if lastb_id and id!=lastb_id+1: # check the block_id
+            return False, "Block id is invalid", []
+    
+    head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]
+
+    if hashex(hashex(head_no_hash))!=header_tuple[1] : # check the hash or header_tuple[2]!=prev_hash
+        return False, "Header hash is invalid", []
+
+    #store it in the db
+    cursor.execute(f'''
+            INSERT INTO blocks 
+            VALUES {head_str}
+            ''')
+    conn.commit()
+    
+    success, tr_list =  recieve_trs(skt, conn) # store the transactions of the block
+    if success:
+        write_to_log(f"Successfully saved the block {id} and its transactions") # log 
+        return True, id, tr_list# if all saved successfully
+    
+    else: #if all saved unsuccessfully
+        #delete all the wrong saved data
+        
+        cursor.execute(f''' 
+        DELETE FROM blocks WHERE block_id = {id} ''')
+
+        cursor.execute(f'''
+        DELETE FROM transactions WHERE block_id = {id} ''')
+        conn.commit()
+        conn.close()
+        return False, "Client error", []
+
+def saveblockchain(msg, skt:socket, conn):
+    loops = msg.split(">")[1]
+    count = 0
+    trans_list = []
+    cursor = conn.cursor()
+    try:
+        while count<int(loops): # recieve multiple blocks
+        
+            skt.settimeout(3) # exception after 3 seconds of no answer
+            (success, header) = receive_buffer(skt) # getting the header of the block
+            if success:
+                header = header.split(">")[1]
+                (suc,  bl_id, tr_list) =  recieve_block(header, conn, skt)
+                if suc==True:
+                    count+=1
+                    trans_list.extend(tr_list)
+                else:
+                    write_to_log(bl_id)
+                    skt.send(format_data(FAILEDTOSAVEBLOCK).encode())
+                    return False
+        
+        for tr in trans_list:
+            trans_tuple = ast.literal_eval(tr)
+
+            token = trans_tuple[6]
+            recv = trans_tuple[4]
+            cursor.execute('''
+            SELECT 1 FROM balances WHERE token = ? AND address = ?
+            ''', (token, recv))
+
+            if cursor.fetchone()==None:
+                cursor.execute('''
+                INSERT INTO balances VALUES (?, ?, ?, ?)
+                ''', (recv, 0, token, 1))
+            
+            conn.commit()
+            calculate_balik_one(tr, conn)
+    
+        return bl_id
     except Exception as e:
-        if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
-            send("Already have the block", skt)
-        #log the exception
-        write_to_log(f" protocol / couldnt save the block header,type {typpe}; {e}")
+        write_to_log(f" Miner / Failed to save block {bl_id} when updating chain")
         return False
 
 
+def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in the mempool
+    cursorp = connp.cursor()
+    try:
+        trans_tuple = ast.literal_eval(trans)
+        #get the before addresses for handling failure
+        # trans ()
+        amount_spent = trans_tuple[5]
+        token = trans_tuple[6]
+        sender = trans_tuple[3]
+        recv = trans_tuple[4]
 
+        cursorp.execute('''
+            SELECT 1 FROM balances WHERE token = ? AND address = ?
+            ''', (token, recv))
 
+        if cursorp.fetchone()==None:
 
+            cursorp.execute('''
+            INSERT INTO balances VALUES (?, ?, ?, ?)
+            ''', (recv, 0, token, 1))
+        connp.commit()
+        
+        # update senders if not miners reward
+        if sender!="0"*64:
+            cursorp.execute(f'''
+            UPDATE balances SET balance = balance - {amount_spent} WHERE address = '{sender}' AND token = '{token}'
+            ''') 
+            cursorp.execute(f'''
+            UPDATE balances SET nonce = nonce + 1 WHERE address = '{sender}' AND token = '{token}'
+            ''') 
+        # update the recievers
+        cursorp.execute(f'''
+        UPDATE balances SET balance = balance + {amount_spent} WHERE address = '{recv}' AND token = '{token}'
+        ''')
+        connp.commit()
+
+        return True, trans_tuple[4] # if no errors return the sender address
+    except Exception as e: # reset the addreses and return error
+
+        write_to_log(f" ClientP / Failed to update balance after transaction ; {e}")
+        return False, f" Error, failed to update balance after transaction ; {e}"
 
 
     

@@ -100,7 +100,7 @@ def send_block(blockid, skt :socket, conn:sqlite3.Connection) -> bool:
                 t= str(tr)
                 send(t ,skt)
 
-            
+        cursor.close()
         send(BLOCKSTOPMSG, skt)
         return True
         
@@ -128,7 +128,7 @@ def send_to_miner(starter:str, diff:int,skt :socket.socket, conn:sqlite3.Connect
             t= str(tr)
             send(t,skt)
         send(BLOCKSTOPMSG, skt)
-
+        cursor.close()
         return True
         
     else:
@@ -146,15 +146,17 @@ def send(msg, skt: socket):
 
     
 
-def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
+def recieve_block(header:str ,skt:socket)->bool:
     '''
     saves the block and the transactions in the database
     '''
     success = True
     try:
-        #create cursor
+        conn = sqlite3.connect('databases/Node/blockchain.db')
+
+        conn.execute('PRAGMA journal_mode=WAL')
         cursor = conn.cursor()
-        conn.commit()
+        
         head_str = header # get the string version of the header data
         header_tuple  = ast.literal_eval(head_str)
         id = header_tuple[0] 
@@ -193,6 +195,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
         success =  recieve_trs(skt, conn) # store the transactions of the block
         if success:
             write_to_log(f"Successfully saved the block {id} and its transactions") # log 
+            conn.close()
             return True, id # if all saved successfully
         
         else: #if all saved unsuccessfully
@@ -205,7 +208,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
             conn.commit()
             conn.close()
             return False, "did not save the transactions"
-    
+        
     except Exception as e:
         if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
             send(format_data("Already have the block").encode(), skt)
@@ -260,8 +263,9 @@ def verify_transaction(transmsg_full: str, conn):
         SELECT balance, nonce FROM balances WHERE address='{transaction_tuple[2]}' AND token='{token}'
         ''')
         result = cursor.fetchone()
-
-
+        
+        cursor.close()
+        conn.commit()
         if result==None:
             return False, "No account with the address"
         balance = float(result[0])
@@ -271,14 +275,18 @@ def verify_transaction(transmsg_full: str, conn):
         if nonce>int(transaction_tuple[0]):
             return False, "Wrong nonce"
         
-        hexedsignature = transaction_tuple[6]
-        hexedpublickey = transaction_tuple[7]
+        hexedsignature = transaction_tuple[7]
+        hexedpublickey = transaction_tuple[6]
 
         transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
         st_transaction = str(transaction)
         public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
         signature: bytes = binascii.unhexlify(hexedsignature)
-    
+
+        if transaction_tuple[2]!=address_from_key(public_key):
+            return False, "Address not connected to public key"
+
+
         is_valid = public_key.verify(signature, st_transaction.encode(),sha256,sigdecode=sigdecode_string) # verifying the signature
         if is_valid:
             return True, ""

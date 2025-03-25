@@ -269,7 +269,7 @@ class Miner:
                 else:
                     # handle if faulted transaction
                     print("trans nogut")
-                    self._socket_obj.send(format_data(ermsg + ">" + transplit[2]).encode())
+                    send(BAD_TRANS_MSG+">" + ermsg + ">" + transplit[2], self._socket_obj)
             
 
             
@@ -284,7 +284,7 @@ class Miner:
         for t in trans_list:
             
             if calculate_balik_one(str(t), conn)[0]==False:
-                write_to_log("")
+                write_to_log("Couldnt calculate balances of block:" + str(s.__lastb))
                 break
 
 
@@ -327,7 +327,7 @@ class Miner:
         return hashes[0]
     
     def __operate_transaction(s, trans, conn):
-        connp = sqlite3.connect(f'databases/Node/pending.db')
+        connp = sqlite3.connect(f'databases/Miner/pending.db')
         cursorp = connp.cursor()
         try:
 
@@ -335,7 +335,7 @@ class Miner:
             if not success:
                 return False, msg
 
-            success, msgg = calculate_balik_one(trans, connp) # update the balance
+            success, msgg = calculate_balik_raw(trans, connp) # update the balance
             if not success:
                 return False, msgg
             
@@ -344,9 +344,6 @@ class Miner:
             cursorp.execute(f'''
                     INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''', trans_tuple)
-            cursorp.execute(f'''
-            UPDATE balances SET nonce = nonce + 1 WHERE address='{trans_tuple[2]}' AND token='{trans_tuple[5]}'
-            ''')
             connp.commit()
 
             connp.close()
@@ -452,8 +449,8 @@ class Miner:
                 else: # delete the miners transaction on error
                     cursorp = pend_conn.cursor()
                     cursorp.execute("""
-                    DELETE FROM transactions WHERE timestamp = ?                  
-                      """, (result[2],))
+                    DELETE FROM transactions WHERE sender = ?                  
+                      """, ('0'*64))
                     cursorp.commit()
 
                     write_to_log(" Miner / Failed to send mined block")

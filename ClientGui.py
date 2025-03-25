@@ -6,8 +6,8 @@ from protocol import *
 from Client_protocol import *
 from PIL import Image, ImageTk
 import PyQt5
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, QGridLayout
-from PyQt5.QtGui import QPixmap, QIcon, QImage, QPainter, QPen, QColor, QBrush
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, QGridLayout, QSpacerItem, QSizePolicy, QToolTip, QComboBox
+from PyQt5.QtGui import QPixmap, QIcon, QImage, QPainter, QPen, QColor, QBrush, QCursor
 from PyQt5.QtCore import Qt, QSize, QPoint, QRect, QTimer
 import sys
 #  endregion
@@ -30,6 +30,55 @@ BACKGROUND_IMAGE = "Images/Bliss.png"
 LOGIN_ICON = "Images/login.png"
 REG_ICON = "Images/register.png"
 WNW_ICON = "Images/wallet.ico"
+BAL_ICON = "Images/dolla.png"
+HIS_ICON ="Images/history.png"
+NOT_ICON = "Images/notif.png"
+
+class HoverLabel(QLabel):
+    def __init__(self, text="", tooltip_text="", parent=None):
+        super().__init__(text, parent)
+        self.tooltip_text = tooltip_text
+        self.tooltip_widget = None
+        self.setCursor(Qt.ArrowCursor)
+        
+        # Configure tooltip appearance
+        self.setStyleSheet("""
+            QLabel {
+                background-color: #000080;
+                color: white;
+                font: bold 12px;
+                padding: 5px;
+                border-radius: 4px;
+            }
+        """)
+
+    def enterEvent(self, event):
+        if self.tooltip_text:
+            # Create a custom tooltip widget
+            self.tooltip_widget = QLabel(self.tooltip_text, self.window())
+            self.tooltip_widget.setStyleSheet("""
+                QLabel {
+                    background-color: #000080;
+                    color: white;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    border: 1px solid white;
+                }
+            """)
+            self.tooltip_widget.setWindowFlags(Qt.ToolTip)
+            
+            # Position tooltip at bottom-right of label
+            pos = self.mapToGlobal(self.rect().bottomRight())
+            self.tooltip_widget.move(pos)
+            self.tooltip_widget.show()
+        
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        if self.tooltip_widget:
+            self.tooltip_widget.deleteLater()
+            self.tooltip_widget = None
+        super().leaveEvent(event)
 
 class TaskbarButton(QPushButton):
     def __init__(s, window, icon, parent=None):
@@ -483,14 +532,6 @@ class ClientGUI:
         s._reg_cut = DesktopShortcut(LOGIN_ICON, "Register", s.openreggui, s._back_label)
         s._reg_cut.setFixedSize(86,86)
 
-        s._balance_cut = DesktopShortcut(REG_ICON, "Balance",s.openbalances ,s._central_widget)
-        s._balance_cut.setFixedSize(86,80)
-
-        s._history_cut = DesktopShortcut(LOGIN_ICON, "History", s.openreggui, s._central_widget)
-        s._history_cut.setFixedSize(86,80)
-
-        s._cut_login_layout.addWidget(s._balance_cut)
-        s._cut_login_layout.addWidget(s._history_cut)   
         s._cut_login_layout.addWidget(s._login_cut)
         s._cut_login_layout.addWidget(s._reg_cut)      
         s._back_label.setLayout(s._cut_login_layout)
@@ -507,7 +548,7 @@ class ClientGUI:
 
     def openlogingui(s):
 
-        s._login_window = QMainWindow() 
+        s._login_window = QMainWindow(s._window) 
         s._login_window.setAttribute(Qt.WA_TranslucentBackground)
         s._login_window.setWindowTitle("Login")
         s._login_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window) # remove the title bar
@@ -569,6 +610,10 @@ class ClientGUI:
         s._password_input.setFixedHeight(30)  # Hide the password input
         s._login_layout.addWidget(s._password_input)
 
+        s._err_label = QLabel("", s._login_central_wid)
+        s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+        s._login_layout.addWidget(s._err_label, alignment=Qt.AlignCenter)
+
         # Create and add the login button
         login_button = QPushButton("Login")
         login_button.setFixedSize(100,30)
@@ -577,8 +622,6 @@ class ClientGUI:
         login_button.clicked.connect(s.__login_on_click)
         s._login_layout.addWidget(login_button, alignment=Qt.AlignCenter)
 
-        s._login_layout.insertSpacing(4, 8)
-        s._login_layout.insertSpacing(6, 8)
 
         s._login_central_wid.setLayout(s._login_layout)
         s._login_window.show()
@@ -589,27 +632,15 @@ class ClientGUI:
             s.user = s._username_input.text()
             s.pas = s._password_input.text()
             if s.user=="" or s.pas=="": # first check if something is wrtiten
-                    if s._err_label==None: # if no error label
-                    
-                        s._err_label = QLabel("All fields should be filled", s._login_central_wid)
-                        s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
-                        s._login_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
-                
-                    elif s._err_label.text()!="All fields should be filled": # if already is error label but different error
-                        s._err_label.setText("All fields should be filled")
-                    return
+                s._err_label.setText("All fields should be filled")
+                return
             
         
             try:
                 s._skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s._skt.connect((DEFAULT_IP,DEFAULT_PORT))
             except Exception:
-                if s._err_label==None:
-                    s._err_label = QLabel("Couldnt connect to node", s._login_central_wid)
-                    s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
-                    s._login_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
-                elif s._err_label.text()!="Couldnt connect to node":
-                    s._err_label.setText("Couldnt connect to node")
+                s._err_label.setText("Couldnt connect to node")
                 return
 
             send(f"LOGIN>{s.user}>{s.pas}", s._skt)
@@ -645,12 +676,33 @@ class ClientGUI:
                     s._login_layout.addWidget(ok_button, alignment=Qt.AlignCenter)
 
                     return      
-                seed = decrypt_data(enc_seed, s.pas)
+                seed_phrase = decrypt_data(enc_seed, s.pas)
+
+                seed = bip39.phrase_to_seed(seed_phrase.decode())
 
                 private_key_bytes = hashlib.sha256(seed).digest()
                 private_key  = SigningKey.from_string(private_key_bytes, NIST256p)
 
                 s._login_window.close() # close the login window
+
+                s._logged_in = QWidget(s._window)
+                s._logged_in.setGeometry(s._window.width()-120, s._window.height()-62, 120, 62)
+                s._logged_in.setStyleSheet("""
+                QWidget {
+                    color: white; font: 15px; background-color: #000080; border:none            
+                }
+
+                """)
+                logg_layout = QVBoxLayout(s._logged_in)
+                logg_layout.setSpacing(3)
+                l = QLabel("Logged in as:")
+                us = QLabel(s.user)
+                logg_layout.addWidget(l, alignment=Qt.AlignCenter)
+                logg_layout.addWidget(us, alignment=Qt.AlignCenter)
+                s._logged_in.setLayout(logg_layout)
+                
+                s._logged_in.show()
+                s._logged_in.raise_()
                 s.__connect_event(s.user, private_key, s._skt)
 
                 return
@@ -663,7 +715,7 @@ class ClientGUI:
         
             
     def openreggui(s):
-        s._reg_window = QMainWindow() 
+        s._reg_window = QMainWindow(s._window) 
         s._reg_window.setAttribute(Qt.WA_TranslucentBackground)
         s._reg_window.setWindowTitle("Register")
         s._reg_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window) # remove the title bar
@@ -724,6 +776,10 @@ class ClientGUI:
         s._password_input.setFixedHeight(30)
         s._reg_layout.addWidget(s._password_input)
 
+        s._err_label = QLabel("", s._reg_central_wid)
+        s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+        s._reg_layout.addWidget(s._err_label, alignment=Qt.AlignCenter)
+
         # Create and add the login button
         reg_button = QPushButton("Register")
         reg_button.setFixedSize(100,30)
@@ -732,7 +788,6 @@ class ClientGUI:
         reg_button.clicked.connect(s.__reg_on_click)
         s._reg_layout.addWidget(reg_button, alignment=Qt.AlignCenter)
 
-        s._reg_layout.insertSpacing(4, 8)
         s._reg_layout.insertSpacing(6, 8)
         s._reg_central_wid.setLayout(s._reg_layout)
         s._reg_window.show()
@@ -742,14 +797,7 @@ class ClientGUI:
         s.pas = s._password_input.text()
 
         if s.user=="" or s.pas=="": # first check if something is wrtiten
-            if s._err_label==None: # if no error label
-            
-                s._err_label = QLabel("All fields should be filled", s._reg_central_wid)
-                s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
-                s._reg_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
-        
-            elif s._err_label.text()!="All fields should be filled": # if already is error label but different error
-                s._err_label.setText("All fields should be filled")
+            s._err_label.setText("All fields should be filled")
             return
     
         try:    
@@ -757,13 +805,7 @@ class ClientGUI:
             s._skt.connect((DEFAULT_IP,DEFAULT_PORT))     
 
         except Exception: # if no node
-            if s._err_label==None:
-                s._err_label = QLabel("Couldnt connect to node", s._reg_central_wid)
-                s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
-                s._reg_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
-                
-            elif s._err_label!="Couldnt connect to node":
-                s._err_label.setText("Couldnt connect to node")           
+            s._err_label.setText("Couldnt connect to node")           
             return
         
         (seed_phrase, address) = create_seed()
@@ -815,13 +857,7 @@ class ClientGUI:
             
             
             return
-        elif s._err_label==None: # if no error label
-            
-            s._err_label = QLabel(result[1], s._reg_central_wid)
-            s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
-            s._reg_layout.insertWidget(4,s._err_label, alignment=Qt.AlignCenter)
-        
-        elif s._err_label.text()!=result[1]: # if already is error label but different error
+        else:
             s._err_label.setText(result[1])
                 
     def check_seed(s):
@@ -887,119 +923,414 @@ class ClientGUI:
         s.__connect_event(s.user, private_key, s._skt)    
 
     def openbalances(s):
-        s._balance_window = QMainWindow()
+        app = QApplication.instance()
+    
+    # Fix tooltips application-wide
+
+        s._balance_window = QMainWindow(s._window)
         s._balance_window.setAttribute(Qt.WA_TranslucentBackground)
         s._balance_window.setWindowTitle("Balances")
         s._balance_window.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
-        s._balance_window.setGeometry(100, 100, 600, 400)
-        s._balance_window.setFixedSize(600, 400)
+        s._balance_window.setFixedSize(650, 450)
 
-        # Create a central widget
+        balance_center = s._window.geometry().center()
+        b_size = s._balance_window.size()
+        s._balance_window.move(
+            balance_center.x() - b_size.width() // 2,
+            balance_center.y() - b_size.height() // 2
+        )
+
+        s._balance_icon = TaskbarButton(s._balance_window, BAL_ICON,s._taskbar)
+        s._task_layout.addWidget(s._balance_icon)
+
+        s._balance_window.setStyleSheet("""
+        QToolTip {
+            color: white;
+            background-color: #000080;
+            border: 1px solid white;
+        }
+        """)
+        # Central widget
         s._balance_central_wid = QWidget(s._balance_window)
         s._balance_central_wid.setStyleSheet(
             "background-color: #ece9d8; border: 4px solid #000080; border-radius: 2px;"
         )
-        s._balance_central_wid.setGeometry(0, 30, s._balance_window.width(), s._balance_window.height() - 30)
-        s._balance_central_wid.setFixedSize(s._balance_window.width(), s._balance_window.height() - 30)
         s._balance_window.setCentralWidget(s._balance_central_wid)
 
-        # Create a custom title bar
-        s._balance_title_bar = DraggableTitleBar("Balances", s._balance_window)
+        # Title bar
+        s._balance_title_bar = DraggableTitleBar(f"Balances - {s.user}", s._balance_window)
         s._balance_title_bar.setStyleSheet(
-            "background-color: #000080; color: white; font: bold 16px; border-radius: 2px 2px 0 0;"
+            "background-color: #000080; color: white; border-radius: 2px 2px 0 0;"
         )
+        s._balance_title_bar.setFixedHeight(30)
         s._balance_title_bar.setGeometry(0, 0, s._balance_window.width(), 30)
-        s._balance_title_bar.setFixedSize(s._balance_window.width(), 30)
-        s._balance_title_bar.raise_()
 
-        # Create a layout for the tokens and buttons
+        #s._greet_label = QLabel(f"           Your balances are:",s._balance_central_wid)
+       # s._greet_label.setStyleSheet("color:black; border: none; padding: 2px; font: bold 24px;")
+        #s._greet_label.move(10,35)
+        #s._greet_label.show()
+        # Main layout
         main_layout = QHBoxLayout(s._balance_central_wid)
-
-        # Create a grid layout for the tokens (2 columns)
-        token_layout = QGridLayout()
+        main_layout.setContentsMargins(20, 50, 20, 20)
+        main_layout.setSpacing(25)
         
-        conn = sqlite3.connect(f'databases/Client/blockchain.db')
+
+        # Token grid
+        token_grid = QGridLayout()
+        
+        token_grid.setHorizontalSpacing(25)
+        token_grid.setVerticalSpacing(20)
+        # Load balances
+
+        conn = sqlite3.connect('databases/Client/blockchain.db')
         cursor = conn.cursor()
-
         address = s._client.get_address()
-        cursor.execute('''
-        SELECT balance from balances WHERE address = ?
-        ''', (address, ))
-
+        cursor.execute('SELECT balance, token from balances WHERE address = ?', (address,))
         balances = cursor.fetchall()
+        
+        if not balances:
+            balances = [(address, '0', ticker, '1') for ticker in s.tickerlist]
+            cursor.executemany('INSERT INTO balances VALUES (?, ?, ?, ?)', balances) 
+            conn.commit()
+            cursor.execute('SELECT balance, token from balances WHERE address = ?', (address,))
+            balances = cursor.fetchall()
+        conn.close()
 
-        # Add tokens to the grid layout
-        for index, token_name in enumerate(s.tickerlist):
-            row = index // 2  # Two tokens per row
-            col = index % 2   # Two columns
+        balance_dict = {}
+        for b in balances:
+            balance_dict[b[1]] = b[0]
 
-            full_name = s.token_name_list[index]
-            balance = balances[index][0]
-            # Create a label with styled text
-            token_label = QLabel()
-            token_label.setText(
-                f'<span style="background-color: #000080; color: white; font-weight: bold; padding: 2px;">${token_name}</span> '
-                f'<span style="color: black;">({full_name}): {balance}</span>'
+        # Add tokens to grid
+        for index, (ticker, full_name) in enumerate(zip(s.tickerlist, s.token_name_list)):
+            row = index // 2
+            col = index % 2
+            try:
+                balance = balance_dict[ticker]
+            except KeyError:
+                balance = 0.0
+            #balance = '0.0'
+
+            # Create token widget
+            token_widget = QWidget()
+            token_widget.setFixedSize(200, 60)
+            token_layout = QHBoxLayout(token_widget)
+            token_layout.setContentsMargins(0, 0, 0, 0)
+            token_layout.setSpacing(0)
+
+            # Ticker label (left)
+            ticker_label = HoverLabel(f"${ticker}", full_name, token_widget)
+            ticker_label.setStyleSheet(
+                "background-color: #000080;"
+                "color: white;"
+                "font: bold 15px;"
             )
-            token_label.setStyleSheet("font: bold 14px; border: none; padding: 5px;")
-            token_layout.addWidget(token_label, row, col)
+            ticker_label.setFixedSize(100, 60)
+            ticker_label.setAlignment(Qt.AlignCenter)
 
-        # Add the token layout to the main layout
-        main_layout.addLayout(token_layout)
+            # Balance label (right)
+            balance_label = QLabel(str(balance), token_widget)
+            balance_label.setStyleSheet(
+                "color: black;"
+                "font: bold 17px;"
+                "border: 4px solid #000080;"
+            )
+            balance_label.setFixedSize(100, 60)
+            balance_label.setAlignment(Qt.AlignCenter)
 
-        # Create a vertical layout for the buttons
+            token_layout.addWidget(ticker_label)
+            token_layout.addWidget(balance_label)
+            token_grid.addWidget(token_widget, row, col)
+
+        # Button layout (center-right)
         button_layout = QVBoxLayout()
+        button_layout.setSpacing(20)
 
-        # Create Send and Receive buttons
         send_button = QPushButton("Send")
+        send_button.clicked.connect(s.create_send_window)
         receive_button = QPushButton("Receive")
+        receive_button.clicked.connect(s.__recv_window)
 
-        # Style the buttons
-        send_button.setStyleSheet(
-            "background-color: #000080; color: white; font: bold 16px; border-radius: 8px; padding: 10px;"
-        )
-        receive_button.setStyleSheet(
-            "background-color: #000080; color: white; font: bold 16px; border-radius: 8px; padding: 10px;"
-        )
+        for button in [send_button, receive_button]:
+            button.setStyleSheet(
+                "QPushButton {"
+                "background-color: #000080;"
+                "color: white;"
+                "font: bold 16px;"
+                "border-radius: 15px;"
+                "padding: 10px;"
+                "min-width: 120px;"
+                "}"
+                "QPushButton:hover {"
+                "background-color: #1a1a8c;"
+                "}"
+            )
+            button.setFixedSize(130, 50)
+            button.setCursor(Qt.PointingHandCursor)
+            button_layout.addWidget(button)
 
-        # Add buttons to the button layout
-        button_layout.addWidget(send_button)
-        button_layout.addWidget(receive_button)
-
-        # Add the button layout to the main layout
+        # Add layouts to main layout
+        main_layout.addLayout(token_grid)
+        main_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         main_layout.addLayout(button_layout)
-
-        # Set the main layout for the central widget
-        s._balance_central_wid.setLayout(main_layout)
 
         s._balance_window.show()
 
+    def create_send_window(s):
+        # Window configuration
+        s._send_window = QMainWindow(s._balance_window) 
 
+        s._send_window.setAttribute(Qt.WA_TranslucentBackground)
+        s._send_window.setWindowTitle("Send Tokens")
+        s._send_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window|Qt.WindowStaysOnTopHint)
+        s._send_window.setGeometry(
+            int(s._balance_window.width()/2)-250, 
+            int(s._balance_window.height()/2)-150, 
+            500, 300
+        )
 
+        balance_center = s._balance_window.geometry().center()
+        send_size = s._send_window.size()
+        s._send_window.move(
+            balance_center.x() - send_size.width() // 2,
+            balance_center.y() - send_size.height() // 2
+        )
 
-
-    def __minimize(s):
-        s._window.showMinimized()
-    
-    def __maximize(s):
-        if s._window.isMaximized():
-            s._window.showNormal()  # Restore to normal size
-
-        else:
-            s._window.showMaximized()  # Maximize the window
-
-    
-    def __close_main(s):
-
-        s._window.close()
-        if s._login_window!=None:
-            s._login_window.close()
+        # Window styling
+        s._send_window.setStyleSheet('''
+            QLineEdit, QComboBox {
+                background-color: white;
+                border: 2px solid #000080;
+                border-radius: 4px;
+                font: 15px;
+                padding: 2px;
+            }
+        ''')
         
-        if s._reg_window!=None:
-            s._reg_window.close()
+        # Central widget setup
+        s._send_central_wid = QWidget(s._send_window)
+        s._send_central_wid.setStyleSheet("background-color: #ece9d8; border: 4px solid #000080; border-radius: 2px;")
+        
+        # Window geometry
+        
+        s._send_window.setFixedSize(500, 300)
+        
+        # Central widget geometry
+        s._send_central_wid.setGeometry(0, 30, s._send_window.width(), s._send_window.height()-30)
+        s._send_central_wid.setFixedSize(s._send_window.width(), s._send_window.height()-30)
+        
+        # Title bar
+        title_bar = DraggableTitleBar("Send Tokens", s._send_window)
+        title_bar.setStyleSheet("background-color: #000080; color: white; border-radius: 2px 2px 0 0;")
+        title_bar.setGeometry(0, 0, s._send_window.width(), 30)
+        title_bar.setFixedSize(s._send_window.width(), 30)
+        title_bar.raise_()
+        
+        # Main layout
+        send_layout = QVBoxLayout(s._send_central_wid)
+        send_layout.setSpacing(5)
+        
+        # Recipient Address input
+        address_label = QLabel("Recipient Address:", s._send_central_wid)
+        address_label.setStyleSheet("font: bold 16px; border: none;")
+        send_layout.addWidget(address_label, alignment=Qt.AlignCenter)
+        
+        s._address_input = QLineEdit(s._send_central_wid)
+        s._address_input.setPlaceholderText("     Enter wallet address: (RRabc123...)")
+        s._address_input.setFixedSize(300, 30)
+        send_layout.addWidget(s._address_input, alignment=Qt.AlignCenter)
+        
+        # Token selection
+        token_label = QLabel("Token:", s._send_central_wid)
+        token_label.setStyleSheet("font: bold 16px; border: none;")
+        send_layout.addWidget(token_label, alignment=Qt.AlignCenter)
+        
+        s._token_select = QComboBox(s._send_central_wid)
+        s._token_select.addItems(s.tickerlist)  # Assuming s.tickerlist exists
+        s._token_select.setFixedSize(100, 30)
+        s._token_select.setStyleSheet("QComboBox { text-align: center; padding-left: 28px;} ")
+        send_layout.addWidget(s._token_select, alignment=Qt.AlignCenter)
+        
+        # Amount input
+        amount_label = QLabel("Amount:", s._send_central_wid)
+        amount_label.setStyleSheet("font: bold 16px; border: none;")
+        send_layout.addWidget(amount_label, alignment=Qt.AlignCenter)
+        
+        s._amount_input = QLineEdit(s._send_central_wid)
+        s._amount_input.setPlaceholderText("0.00")
+        s._amount_input.setFixedSize(100, 30)
+        s._amount_input.setAlignment(Qt.AlignCenter)
+        send_layout.addWidget(s._amount_input, alignment=Qt.AlignCenter)
+
+        s._err_label = QLabel("", s._send_central_wid)
+        s._err_label.setStyleSheet("color: red; font-weight: bold; border: none")
+        send_layout.addWidget(s._err_label, alignment=Qt.AlignCenter)
+        # Send button
+        send_button = QPushButton("SEND", s._send_central_wid)
+        send_button.setStyleSheet('''
+            QPushButton {
+                background-color: #000080;
+                color: white;
+                font: bold 16px;
+                border-radius: 8px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #1a1a8c;
+            }
+        ''')
+        send_button.setFixedSize(150, 40)
+        
+
+        send_button.clicked.connect(s.__send_transaction)  
+        send_layout.addWidget(send_button, alignment=Qt.AlignCenter)
+        
+        s._send_central_wid.setLayout(send_layout)
+        s._send_window.show()
+
+    def __send_transaction(s):
+        recv_address = s._address_input.text()
+        amount = s._amount_input.text()
+        token = s._token_select.currentText()
+
+        if not recv_address or not amount or not token:
+            s._err_label.setText("All fields should be filled")
+            return
+        a = is_valid_amount(amount)
+
+        if a==False:
+            s._err_label.setText("Invalid amount, must be a positive number")
+            return
+        
+        if not check_address(recv_address):
+            s._err_label.setText("Invaild address, wrong format")
+            return
+        
+        address = s._client.get_address()
+        if address == recv_address:
+            s._err_label.setText("Invalid address, can`t send to yourself")
+            return
+        conn = sqlite3.connect('databases/Client/blockchain.db')
+        cursor = conn.cursor()
+        
+
+        cursor.execute(f'''
+        SELECT balance, nonce FROM balances WHERE address='{address}' AND token='{token}'
+        ''')
+        balance, nonce = cursor.fetchone()
+
+        if float(amount)>float(balance):
+            s._err_label.setText(f"Invalid amount, spending more then your balance ({balance})")
+            return
+        
+        send(f"Is address valid?>{recv_address}", s._client.getsocket())
+        time.sleep(0.02)
+        result = s._client.get_message()
+        if result!="Valid":
+            s._err_label.setText(result)
+            return
+
+        if s._client.send_transaction(token, amount, recv_address):
+            s._err_label.setStyleSheet("color: green")
+            s._err_label.setText(f"Successfully sent transaction to {recv_address}, waiting for validation")
+        else:
+            s._err_label.setText(f"Failed to send transaction to {recv_address}")
+
+    def __recv_window(s):
+        s._recv_window = QMainWindow(s._balance_window) 
+
+        s._recv_window.setAttribute(Qt.WA_TranslucentBackground)
+        s._recv_window.setWindowTitle("Recieve")
+        s._recv_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window|Qt.WindowStaysOnTopHint)
+        s._recv_window.setGeometry(
+            int(s._balance_window.width()/2)-250, 
+            int(s._balance_window.height()/2)-150, 
+            370, 200
+        )
+
+        balance_center = s._balance_window.geometry().center()
+        send_size = s._recv_window.size()
+        s._recv_window.move(
+            balance_center.x() - send_size.width() // 2,
+            balance_center.y() - send_size.height() // 2
+        )
+
+        central_wid = QWidget(s._recv_window)
+        central_wid.setStyleSheet("background-color: #ece9d8; border: 4px solid #000080; border-radius: 2px;")
+
+        central_wid.setGeometry(0, 30, s._recv_window.width(), s._recv_window.height()-30)
+        central_wid.setFixedSize(s._recv_window.width(), s._recv_window.height()-30)
+
+        title_bar = DraggableTitleBar("Recieve", s._recv_window)
+        title_bar.setStyleSheet("background-color: #000080; color: white; border-radius: 2px 2px 0 0;")
+        title_bar.setGeometry(0, 0, s._recv_window.width(), 30)
+        title_bar.setFixedSize(s._recv_window.width(), 30)
+        title_bar.raise_()
+
+        layout = QVBoxLayout(central_wid)
+        layout.setSpacing(10)
+
+        recv_label = QLabel("Your Address:",central_wid)
+        recv_label.setStyleSheet("font: bold 16px; border: none; color:black")
+        layout.addWidget(recv_label, alignment=Qt.AlignCenter)
+
+        adr_label = QLabel(s._client.get_address(),central_wid)
+        adr_label.setStyleSheet("font: bold 14px; color:black")
+        adr_label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
+        adr_label.setCursor(Qt.IBeamCursor)
+        layout.addWidget(adr_label, alignment=Qt.AlignCenter)
+
+        s.copied = QLabel("",central_wid)
+        s.copied.setStyleSheet("font: bold 16px; color: #000080; border: none")
+        layout.addWidget(s.copied, alignment=Qt.AlignCenter)
+
+        s.copy_button = QPushButton("Copy",central_wid)
+        s.copy_button.clicked.connect(s.__copy)
+        s.copy_button.setStyleSheet('''
+            QPushButton {
+                background-color: #000080;
+                color: white;
+                font: bold 16px;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1a1a8c;
+            }
+        ''')
+        s.copy_button.setFixedSize(150, 40)
+        layout.addWidget(s.copy_button, alignment=Qt.AlignCenter)
+
+        central_wid.setLayout(layout)
+        s._recv_window.show()
+
+    def __copy(s):
+        QApplication.clipboard().setText(s._client.get_address())
+        s.copy_button.setStyleSheet('''
+            QPushButton {
+                background-color: white;
+                color: #000080;
+                font: bold 16px;
+                border-radius: 8px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: grey;
+            }
+        ''')
+        s.copied.setText("Copied!")
+
+    def __open_history(s):
+        
+        
+
+
+
+        
+
     
     def draw(s):
         app = QApplication([])
+
         s._window.show()
         app.exec_()
     
@@ -1020,10 +1351,10 @@ class ClientGUI:
                 s._reg_cut.setParent(None)
                 s._login_cut.setParent(None)
 
-                s._balance_cut = DesktopShortcut(REG_ICON, "Balance",s.openbalances ,s._central_widget)
+                s._balance_cut = DesktopShortcut(BAL_ICON, "Balance",s.openbalances ,s._central_widget)
                 s._balance_cut.setFixedSize(86,80)
 
-                s._history_cut = DesktopShortcut(LOGIN_ICON, "History", s.openreggui, s._central_widget)
+                s._history_cut = DesktopShortcut(HIS_ICON, "History", s.openreggui, s._central_widget)
                 s._history_cut.setFixedSize(86,80)
 
                 s._cut_login_layout.addWidget(s._balance_cut)
@@ -1040,8 +1371,9 @@ class ClientGUI:
             write_to_log(f" 路 Client GUI 路 an error has occurred : {error}")
             messagebox.showerror("Error on Connect", error)
     
+
     def __send_data_event(s):
-        s._client.send_transaction("SNC", 14.88, "qwe")
+        s._client.send_transaction()
 
     def show_error(s, title, error):
         QMessageBox.information(s._central_widget, title, error)

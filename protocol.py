@@ -93,7 +93,7 @@ def write_to_log(data):
     logging.info(data)
     print(data)
 
-def receive_buffer(my_socket: socket) -> (bool, str):
+def receive_buffer(my_socket: socket) -> tuple[bool,str]:
     """
     Extracts a message from the socket and handles potential errors.
     """
@@ -128,27 +128,6 @@ def address_from_key(public_key: VerifyingKey):
 
 
     
-def saveblockchain(msg, typpe:str, skt:socket):
-    loops = msg.split(">")[1]
-    count = 0
-    try:
-        while count<loops: # recieve multiple blocks
-        
-            skt.settimeout(3) # exception after 3 seconds of no answer
-            (success, header) = receive_buffer(skt) # getting the header of the block
-            if success:
-                header = header.split(">")[1]
-                (suc,  bl_id) =  recieve_block(header, typpe, skt)
-                if suc:
-                    count+=1
-                else:
-                    skt.send(format_data(FAILEDTOSAVEBLOCK).encode())
-                    return False
-            
-        return bl_id
-    except Exception as e:
-        write_to_log(f" Miner / Failed to save block {bl_id} when updating chain")
-        return False
 
 
 

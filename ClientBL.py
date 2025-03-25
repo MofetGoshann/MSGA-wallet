@@ -22,6 +22,7 @@ class ClientBL:
         self.__user = username
         self.__private_key = private_key
         self.__address = address_from_key(self.__private_key.get_verifying_key())
+        print(self.__address)
         self.__recieved_message:str = None
         self._last_error = ""
         self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "MSGA", "52C", "GMBL", "MGR", "RR"]
@@ -120,7 +121,7 @@ class ClientBL:
             hexedpub = binascii.hexlify(public_key.to_string("compressed")).decode() # hexed public key
             hexedsig = binascii.hexlify(signature).decode() # hexed signature
 
-            wholetransaction = f"({nonce}, '{time}', '{addres}', '{rec_address}', {amount}, '{token}', '{hexedsig}', '{hexedpub}')"
+            wholetransaction = f"({nonce}, '{time}', '{addres}', '{rec_address}', {amount}, '{token}', '{hexedpub}', '{hexedsig}')"
 
             return wholetransaction
 
@@ -142,8 +143,6 @@ class ClientBL:
             if message==False:
                 return False
             send(TRANS+"|"+message, self._socket_obj)
-
-            write_to_log(f" 路 Client 路 send to server : {message}")
 
             return True
 
@@ -197,16 +196,18 @@ class ClientBL:
         connected = True
         while connected:
             s._socket_obj.settimeout(3) # set a timeout for recievedata
+            conn = sqlite3.connect("databases/Client/blockchain.db")
 
             s.__recieved_message = s.__receive_data() # update 
             msg = s.__recieved_message
 
             if not msg==None:
+                write_to_log(" Client / Received from Node : " + msg)
                 if msg==KICK_MSG:
                     discsuccess = s.disconnect() # disconnect the client from server
                     
                     if discsuccess: # confirm diconnect
-                        write_to_log(f" 路 Client 路 You have been been kicked")
+                        write_to_log(f" Client / You have been been kicked")
 
                     connected = False # close loop
                 
@@ -214,11 +215,14 @@ class ClientBL:
                     #faulty transaction
                     s._last_error = f"Error in client bl the transaction sent is invalid "
                 
-                if msg.startswith(MINEDBLOCKSENDMSG):
+                if msg.startswith(BLOCKSENDMSG):
                     header = msg.split(">")[1]
-                    (suc,  bl_id) =  recieve_block(header, "Client", s._socket_obj)
+                    (suc,  bl_id, g) =  recieve_block(header, conn, s._socket_obj)
                     if suc:
-                        s._lastb = bl_id
+                        s._lastb +=1
+                        s.update_balances(conn)
+                    else:
+                        send(bl_id, s._socket_obj)
                     #got a block from the miner
                 
                 if msg==GOOD_TRANS_MSG:
@@ -228,14 +232,26 @@ class ClientBL:
                     result = saveblockchain(msg, s._socket_obj, conn)
                     if result!=False:
                         s._lastb = result
-                        write_to_log(f" Miner / Updated chain, last block: {s._lastb}")
+                        write_to_log(f" Client / Updated chain, last block: {s._lastb}")
                     
                     else:
                         s._last_error = "Cannot connect to blockchain"
                         print("nono")
                         s.disconnect()
 
+    def update_balances(s, conn):
+        cursor:sqlite3.Cursor = conn.cursor()
+        cursor.execute(f'''
+        SELECT * FROM transactions WHERE block_id = {s._lastb} 
+        ''')
 
+        trans_list :list[tuple]= cursor.fetchall()
+
+        for t in trans_list:
+            
+            if calculate_balik_one(str(t), conn)[0]==False:
+                write_to_log("Couldnt calculate balances of block:" + str(s._lastb))
+                break
     
 
 
@@ -254,6 +270,10 @@ class ClientBL:
     
     def get_address(s):
         return s.__address
+
+    def get_message(s):
+        return s.__recieved_message
+    
 def chain_on_start(skt:socket):
 
     conn = sqlite3.connect(f'databases/Client/blockchain.db')
@@ -304,7 +324,7 @@ def chain_on_start(skt:socket):
 
     if lastb_id:
         send(CHAINUPDATEREQUEST + f">{lastb_id[0]}", skt)
-        return lastb_id
+        return lastb_id[0]
     else:
         send(CHAINUPDATEREQUEST + f">{1}", skt)
         return 1

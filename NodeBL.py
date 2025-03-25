@@ -277,6 +277,7 @@ class NodeBL:
         user = clientsession.getusername()
         sock = clientsession.getsocket()
         conn = sqlite3.connect('databases/Node/blockchain.db')
+        conn.execute('PRAGMA journal_mode=WAL')
 
         # This code run in separate for every client
         write_to_log(f"Node / New client : {user} connected")
@@ -286,7 +287,7 @@ class NodeBL:
         #    self._clientstablecallback(client_addr[0], client_addr[1], True, False)
         
         connected = True
-
+        
         while connected:
             # Get message from  client
             (success,  msg) = receive_buffer(sock)
@@ -325,10 +326,20 @@ class NodeBL:
                             if(session.gettype()==2):
                                 #retransmit the transacion to the miners
                                 send(msg+"|"+user, session.getsocket())
-                        write_to_log("Node / Broadcasted block")
+                        write_to_log("Node / Broadcasted transaction")
+                    
                 if msg.startswith(CHAINUPDATEREQUEST):
                     if self.__sendupdatedchain(sock, msg, conn)==True:
                         write_to_log(" Node / Updated: " + user)  
+                
+                if msg.startswith("Is address valid"):
+                    adr = msg.split(">")[1]
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT 1 FROM balances WHERE address = ? ", (adr, ))
+                    if cursor.fetchone():
+                        sock.send(format_data("Valid").encode())
+                    else:
+                        send("No such address in the blockchain", sock)
                     
     
     def __handle_miner(self, miner_session: Session):
@@ -359,7 +370,7 @@ class NodeBL:
                 if msg.startswith(MINEDBLOCKSENDMSG): # if miner is sending a block
                     res = msg.split(">") # minedblocksend, header, time
 
-                    (suc,  bl_id) =  recieve_block(res[1], conn, sock)
+                    (suc,  bl_id) =  recieve_block(res[1], sock)
                     if suc: # if recieved block successfully
                         self.__timedict["blocks"]+=1
                         self.__timedict["sum"]+=float(res[2])
@@ -384,11 +395,11 @@ class NodeBL:
                             #retransmit the block to all
                             skt=session.getsocket()
                             if session.gettype()==2 and session.getusername()!=user: # to the miners
-                                send_to_miner(msg, self.__timedict['diff'],sock, conn)
+                                send_to_miner(msg, self.__timedict['diff'],session.getsocket(), conn)
                                 write_to_log(f" Node / sent the block to {session.getusername()}")
 
                             elif session.gettype()==1: # to clients
-                                send_block(bl_id, sock, conn)
+                                send_block(bl_id, session.getsocket(), conn)
                                 write_to_log(f" Node / sent the block to {session.getusername()}")
                             
                     else:
@@ -407,7 +418,17 @@ class NodeBL:
                         if(us==user_to_send):
                             send(GOOD_TRANS_MSG, session.getsocket())
                             write_to_log(f" Node / Sent confirmation to: {user_to_send}")
-            
+
+                if msg.startswith(BAD_TRANS_MSG):
+                    er = msg.split(">")[1]
+                    user_to_send = msg.split(">")[2]
+                    for session in self._sessionlist:
+                        #retransmit to the sender
+                        us=session.getusername()
+                        if(us==user_to_send):
+                            send(BAD_TRANS_MSG+">"+er, session.getsocket())
+                            write_to_log(f" Node / Sent error to: {user_to_send}")
+
                 msg=""
                 
     

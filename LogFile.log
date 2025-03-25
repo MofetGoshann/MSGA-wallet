@@ -1,262 +1,45 @@
-2025-03-25 01:00:09,066 - INFO -  Node / starting
-2025-03-25 01:00:09,069 - INFO - No blocks in the chain, starting difficulty is 6
-2025-03-25 01:00:09,069 - INFO -  Node / listening on 0.0.0.0
-2025-03-25 01:00:23,367 - INFO -  Miner / Sending message: Miner address:>RRdcff92bc9ff4aa60e3cafe147e197d9ac46f
-2025-03-25 01:00:23,367 - INFO -   Protocol  · Buffer size : 53
-2025-03-25 01:00:23,367 - INFO -   Protocol  · Buffer data : Miner address:>RRdcff92bc9ff4aa60e3cafe147e197d9ac46f
-2025-03-25 01:00:23,368 - INFO -  Node / Sending message: Valid
-2025-03-25 01:00:23,368 - INFO -   Protocol  · Buffer size : 5
-2025-03-25 01:00:23,368 - INFO -   Protocol  · Buffer data : Valid
-2025-03-25 01:00:23,370 - INFO -  Miner / Sending message: asd>2
-2025-03-25 01:00:23,371 - INFO -   Protocol  · Buffer size : 5
-2025-03-25 01:00:23,371 - INFO -   Protocol  · Buffer data : asd>2
-2025-03-25 01:00:23,371 - INFO -  Node / Active connection 1
-2025-03-25 01:00:23,371 - INFO - Node / New miner : asd connected
-2025-03-25 01:00:23,372 - INFO -  Miner / Sending message: Can you send me the blockchain from block>1
-2025-03-25 01:00:23,431 - INFO -   Protocol  · Buffer size : 43
-2025-03-25 01:00:23,431 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>1
-2025-03-25 01:00:23,431 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>1
-2025-03-25 01:00:23,432 - INFO -  Node / Sending message: UPDATED>0>6
-2025-03-25 01:00:23,432 - INFO -   Protocol  · Buffer size : 11
-2025-03-25 01:00:23,432 - INFO -   Protocol  · Buffer data : UPDATED>0>6
-2025-03-25 01:00:23,432 - INFO -  Miner / Received from Node : UPDATED>0>6
-2025-03-25 01:01:27,108 - INFO - Sent the block 1 to node 
-2025-03-25 01:01:27,108 - INFO -  Miner / Sending message: Sending mined block>(1, '00000015b4cd3c399715ef0e7eaa1e45a79c7d01468b16f72d72777603f940ce', '0', 'ac98e0205cf16741cef81b5d14d6e82a93579d70862d43bf32f6390bb5cd41aa', '25.03.2025 01:01:26', 6, 26567858)>63.62
-2025-03-25 01:01:27,109 - INFO -   Protocol  · Buffer size : 206
-2025-03-25 01:01:27,109 - INFO -   Protocol  · Buffer data : Sending mined block>(1, '00000015b4cd3c399715ef0e7eaa1e45a79c7d01468b16f72d72777603f940ce', '0', 'ac98e0205cf16741cef81b5d14d6e82a93579d70862d43bf32f6390bb5cd41aa', '25.03.2025 01:01:26', 6, 26567858)>63.62
-2025-03-25 01:01:27,109 - INFO -  Node / received from miner : asd - Sending mined block>(1, '00000015b4cd3c399715ef0e7eaa1e45a79c7d01468b16f72d72777603f940ce', '0', 'ac98e0205cf16741cef81b5d14d6e82a93579d70862d43bf32f6390bb5cd41aa', '25.03.2025 01:01:26', 6, 26567858)>63.62
-2025-03-25 01:01:27,109 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:01:27,121 - INFO -   Protocol  · Buffer size : 290
-2025-03-25 01:01:27,121 - INFO -   Protocol  · Buffer data : (1, 0, '25.03.2025 01:00:23', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'PEPE', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:01:27,122 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:01:27,122 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:01:27,127 - INFO - Successfully saved the block 1 and its transactions
-2025-03-25 01:01:27,133 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:01:27,133 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:01:27,133 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:01:27,133 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:01:27,241 - INFO - Miner / Successully mined and broadcasted the block 1
-2025-03-25 01:02:49,010 - INFO - Sent the block 2 to node 
-2025-03-25 01:02:49,010 - INFO -  Miner / Sending message: Sending mined block>(2, '000000baadfb5fbfc500b1147cf3ed546b4b6b23045844c7365705c04a2e6324', '00000015b4cd3c399715ef0e7eaa1e45a79c7d01468b16f72d72777603f940ce', '7c37f3db0713e7307674e4c77172f276c9b95b4629258228c5c939a35d4ea627', '25.03.2025 01:02:48', 6, 33163991)>81.76
-2025-03-25 01:02:49,011 - INFO -   Protocol  · Buffer size : 269
-2025-03-25 01:02:49,011 - INFO -   Protocol  · Buffer data : Sending mined block>(2, '000000baadfb5fbfc500b1147cf3ed546b4b6b23045844c7365705c04a2e6324', '00000015b4cd3c399715ef0e7eaa1e45a79c7d01468b16f72d72777603f940ce', '7c37f3db0713e7307674e4c77172f276c9b95b4629258228c5c939a35d4ea627', '25.03.2025 01:02:48', 6, 33163991)>81.76
-2025-03-25 01:02:49,011 - INFO -  Node / received from miner : asd - Sending mined block>(2, '000000baadfb5fbfc500b1147cf3ed546b4b6b23045844c7365705c04a2e6324', '00000015b4cd3c399715ef0e7eaa1e45a79c7d01468b16f72d72777603f940ce', '7c37f3db0713e7307674e4c77172f276c9b95b4629258228c5c939a35d4ea627', '25.03.2025 01:02:48', 6, 33163991)>81.76
-2025-03-25 01:02:49,011 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:02:49,020 - INFO -   Protocol  · Buffer size : 288
-2025-03-25 01:02:49,021 - INFO -   Protocol  · Buffer data : (2, 0, '25.03.2025 01:01:27', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'RR', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:02:49,022 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:02:49,022 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:02:49,026 - INFO - Successfully saved the block 2 and its transactions
-2025-03-25 01:02:49,032 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:02:49,033 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:02:49,033 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:02:49,033 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:02:49,156 - INFO - Miner / Successully mined and broadcasted the block 2
-2025-03-25 01:03:29,855 - INFO - Sent the block 3 to node 
-2025-03-25 01:03:29,856 - INFO -  Miner / Sending message: Sending mined block>(3, '000000913e67729578db090d84f2a1cef0daaf06a52941316bd815a00f55f995', '000000baadfb5fbfc500b1147cf3ed546b4b6b23045844c7365705c04a2e6324', '7a076091795bea7a30394616b0fed7b597f6e359359a3160f63322c7d5511ce3', '25.03.2025 01:03:29', 6, 16587159)>40.69
-2025-03-25 01:03:29,856 - INFO -   Protocol  · Buffer size : 269
-2025-03-25 01:03:29,856 - INFO -   Protocol  · Buffer data : Sending mined block>(3, '000000913e67729578db090d84f2a1cef0daaf06a52941316bd815a00f55f995', '000000baadfb5fbfc500b1147cf3ed546b4b6b23045844c7365705c04a2e6324', '7a076091795bea7a30394616b0fed7b597f6e359359a3160f63322c7d5511ce3', '25.03.2025 01:03:29', 6, 16587159)>40.69
-2025-03-25 01:03:29,856 - INFO -  Node / received from miner : asd - Sending mined block>(3, '000000913e67729578db090d84f2a1cef0daaf06a52941316bd815a00f55f995', '000000baadfb5fbfc500b1147cf3ed546b4b6b23045844c7365705c04a2e6324', '7a076091795bea7a30394616b0fed7b597f6e359359a3160f63322c7d5511ce3', '25.03.2025 01:03:29', 6, 16587159)>40.69
-2025-03-25 01:03:29,857 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:03:29,867 - INFO -   Protocol  · Buffer size : 290
-2025-03-25 01:03:29,867 - INFO -   Protocol  · Buffer data : (3, 0, '25.03.2025 01:02:49', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'COLR', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:03:29,867 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:03:29,867 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:03:29,872 - INFO - Successfully saved the block 3 and its transactions
-2025-03-25 01:03:29,878 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:03:29,878 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:03:29,878 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:03:29,878 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:03:29,999 - INFO - Miner / Successully mined and broadcasted the block 3
-2025-03-25 01:05:33,257 - INFO - Sent the block 4 to node 
-2025-03-25 01:05:33,257 - INFO -  Miner / Sending message: Sending mined block>(4, '0000008b0644b15eb9b32d608bcbfcebc70047efd7429fcfc397e199470b9c16', '000000913e67729578db090d84f2a1cef0daaf06a52941316bd815a00f55f995', '5941be1216e85e4ae19c43a32a4d98e2ec6c21b03c62e06d0be082a5724c9775', '25.03.2025 01:05:33', 6, 50049571)>123.25
-2025-03-25 01:05:33,257 - INFO -   Protocol  · Buffer size : 270
-2025-03-25 01:05:33,258 - INFO -   Protocol  · Buffer data : Sending mined block>(4, '0000008b0644b15eb9b32d608bcbfcebc70047efd7429fcfc397e199470b9c16', '000000913e67729578db090d84f2a1cef0daaf06a52941316bd815a00f55f995', '5941be1216e85e4ae19c43a32a4d98e2ec6c21b03c62e06d0be082a5724c9775', '25.03.2025 01:05:33', 6, 50049571)>123.25
-2025-03-25 01:05:33,258 - INFO -  Node / received from miner : asd - Sending mined block>(4, '0000008b0644b15eb9b32d608bcbfcebc70047efd7429fcfc397e199470b9c16', '000000913e67729578db090d84f2a1cef0daaf06a52941316bd815a00f55f995', '5941be1216e85e4ae19c43a32a4d98e2ec6c21b03c62e06d0be082a5724c9775', '25.03.2025 01:05:33', 6, 50049571)>123.25
-2025-03-25 01:05:33,259 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:05:33,264 - INFO -   Protocol  · Buffer size : 290
-2025-03-25 01:05:33,264 - INFO -   Protocol  · Buffer data : (4, 0, '25.03.2025 01:03:29', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'MSGA', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:05:33,265 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:05:33,265 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:05:33,270 - INFO - Successfully saved the block 4 and its transactions
-2025-03-25 01:05:33,275 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:05:33,275 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:05:33,276 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:05:33,276 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:05:33,403 - INFO - Miner / Successully mined and broadcasted the block 4
-2025-03-25 01:06:28,269 - INFO - Sent the block 5 to node 
-2025-03-25 01:06:28,269 - INFO -  Miner / Sending message: Sending mined block>(5, '000000252d7f8ef95d7f93b21b0ef4d21cc6b3da0983561049911d4f4760fc1b', '0000008b0644b15eb9b32d608bcbfcebc70047efd7429fcfc397e199470b9c16', '741a81746643426e29f93eda8db1195c1a04f2f2d0e194368de87adf140ddcb3', '25.03.2025 01:06:27', 6, 19423203)>54.86
-2025-03-25 01:06:28,270 - INFO -   Protocol  · Buffer size : 269
-2025-03-25 01:06:28,270 - INFO -   Protocol  · Buffer data : Sending mined block>(5, '000000252d7f8ef95d7f93b21b0ef4d21cc6b3da0983561049911d4f4760fc1b', '0000008b0644b15eb9b32d608bcbfcebc70047efd7429fcfc397e199470b9c16', '741a81746643426e29f93eda8db1195c1a04f2f2d0e194368de87adf140ddcb3', '25.03.2025 01:06:27', 6, 19423203)>54.86
-2025-03-25 01:06:28,270 - INFO -  Node / received from miner : asd - Sending mined block>(5, '000000252d7f8ef95d7f93b21b0ef4d21cc6b3da0983561049911d4f4760fc1b', '0000008b0644b15eb9b32d608bcbfcebc70047efd7429fcfc397e199470b9c16', '741a81746643426e29f93eda8db1195c1a04f2f2d0e194368de87adf140ddcb3', '25.03.2025 01:06:27', 6, 19423203)>54.86
-2025-03-25 01:06:28,270 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:06:28,281 - INFO -   Protocol  · Buffer size : 289
-2025-03-25 01:06:28,281 - INFO -   Protocol  · Buffer data : (5, 0, '25.03.2025 01:05:33', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'TAL', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:06:28,282 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:06:28,282 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:06:28,287 - INFO - Successfully saved the block 5 and its transactions
-2025-03-25 01:06:28,293 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:06:28,293 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:06:28,293 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:06:28,293 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:06:28,420 - INFO - Miner / Successully mined and broadcasted the block 5
-2025-03-25 01:06:45,488 - INFO - Sent the block 6 to node 
-2025-03-25 01:06:45,488 - INFO -  Miner / Sending message: Sending mined block>(6, '0000004819bbdeb1fc09d5e50c5548ba9097d2a334b7e4128750fe7bbdc8d32e', '000000252d7f8ef95d7f93b21b0ef4d21cc6b3da0983561049911d4f4760fc1b', '290ed20645ae9571d395d9ffe2615ff31a72963f99ed8b89a611a32492b161aa', '25.03.2025 01:06:44', 6, 6924634)>17.06
-2025-03-25 01:06:45,489 - INFO -   Protocol  · Buffer size : 268
-2025-03-25 01:06:45,489 - INFO -   Protocol  · Buffer data : Sending mined block>(6, '0000004819bbdeb1fc09d5e50c5548ba9097d2a334b7e4128750fe7bbdc8d32e', '000000252d7f8ef95d7f93b21b0ef4d21cc6b3da0983561049911d4f4760fc1b', '290ed20645ae9571d395d9ffe2615ff31a72963f99ed8b89a611a32492b161aa', '25.03.2025 01:06:44', 6, 6924634)>17.06
-2025-03-25 01:06:45,489 - INFO -  Node / received from miner : asd - Sending mined block>(6, '0000004819bbdeb1fc09d5e50c5548ba9097d2a334b7e4128750fe7bbdc8d32e', '000000252d7f8ef95d7f93b21b0ef4d21cc6b3da0983561049911d4f4760fc1b', '290ed20645ae9571d395d9ffe2615ff31a72963f99ed8b89a611a32492b161aa', '25.03.2025 01:06:44', 6, 6924634)>17.06
-2025-03-25 01:06:45,489 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:06:45,501 - INFO -   Protocol  · Buffer size : 288
-2025-03-25 01:06:45,501 - INFO -   Protocol  · Buffer data : (6, 0, '25.03.2025 01:06:28', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'RR', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:06:45,502 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:06:45,502 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:06:45,507 - INFO - Successfully saved the block 6 and its transactions
-2025-03-25 01:06:45,512 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:06:45,512 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:06:45,512 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:06:45,512 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:06:45,627 - INFO - Miner / Successully mined and broadcasted the block 6
-2025-03-25 01:06:54,221 - INFO - Sent the block 7 to node 
-2025-03-25 01:06:54,221 - INFO -  Miner / Sending message: Sending mined block>(7, '000000d39df9cd63c01e7709a53648aaef957799a5387a6951b9312df23479b2', '0000004819bbdeb1fc09d5e50c5548ba9097d2a334b7e4128750fe7bbdc8d32e', '60f6ab6a7b46478615db948e09018f4dcb20dddefd84693e839c14ef12459abb', '25.03.2025 01:06:53', 6, 3492405)>8.59
-2025-03-25 01:06:54,222 - INFO -   Protocol  · Buffer size : 267
-2025-03-25 01:06:54,222 - INFO -   Protocol  · Buffer data : Sending mined block>(7, '000000d39df9cd63c01e7709a53648aaef957799a5387a6951b9312df23479b2', '0000004819bbdeb1fc09d5e50c5548ba9097d2a334b7e4128750fe7bbdc8d32e', '60f6ab6a7b46478615db948e09018f4dcb20dddefd84693e839c14ef12459abb', '25.03.2025 01:06:53', 6, 3492405)>8.59
-2025-03-25 01:06:54,222 - INFO -  Node / received from miner : asd - Sending mined block>(7, '000000d39df9cd63c01e7709a53648aaef957799a5387a6951b9312df23479b2', '0000004819bbdeb1fc09d5e50c5548ba9097d2a334b7e4128750fe7bbdc8d32e', '60f6ab6a7b46478615db948e09018f4dcb20dddefd84693e839c14ef12459abb', '25.03.2025 01:06:53', 6, 3492405)>8.59
-2025-03-25 01:06:54,223 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:06:54,235 - INFO -   Protocol  · Buffer size : 289
-2025-03-25 01:06:54,235 - INFO -   Protocol  · Buffer data : (7, 0, '25.03.2025 01:06:45', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, '52C', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:06:54,235 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:06:54,235 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:06:54,240 - INFO - Successfully saved the block 7 and its transactions
-2025-03-25 01:06:54,246 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:06:54,247 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:06:54,247 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:06:54,247 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:06:54,364 - INFO - Miner / Successully mined and broadcasted the block 7
-2025-03-25 01:06:55,101 - INFO - Sent the block 8 to node 
-2025-03-25 01:06:55,101 - INFO -  Miner / Sending message: Sending mined block>(8, '000000602f12aeaa596ccf4421bb3c0c2b206adf33776147029278c2214c45cf', '000000d39df9cd63c01e7709a53648aaef957799a5387a6951b9312df23479b2', 'ff8d232e4efb11020d4f3bd5b988b635d0f63400677275759782d097a8d6e3f6', '25.03.2025 01:06:54', 6, 289697)>0.73
-2025-03-25 01:06:55,102 - INFO -   Protocol  · Buffer size : 266
-2025-03-25 01:06:55,102 - INFO -   Protocol  · Buffer data : Sending mined block>(8, '000000602f12aeaa596ccf4421bb3c0c2b206adf33776147029278c2214c45cf', '000000d39df9cd63c01e7709a53648aaef957799a5387a6951b9312df23479b2', 'ff8d232e4efb11020d4f3bd5b988b635d0f63400677275759782d097a8d6e3f6', '25.03.2025 01:06:54', 6, 289697)>0.73
-2025-03-25 01:06:55,102 - INFO -  Node / received from miner : asd - Sending mined block>(8, '000000602f12aeaa596ccf4421bb3c0c2b206adf33776147029278c2214c45cf', '000000d39df9cd63c01e7709a53648aaef957799a5387a6951b9312df23479b2', 'ff8d232e4efb11020d4f3bd5b988b635d0f63400677275759782d097a8d6e3f6', '25.03.2025 01:06:54', 6, 289697)>0.73
-2025-03-25 01:06:55,103 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:06:55,113 - INFO -   Protocol  · Buffer size : 290
-2025-03-25 01:06:55,113 - INFO -   Protocol  · Buffer data : (8, 0, '25.03.2025 01:06:54', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'MSGA', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:06:55,113 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:06:55,113 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:06:55,119 - INFO - Successfully saved the block 8 and its transactions
-2025-03-25 01:06:55,124 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:06:55,125 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:06:55,125 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:06:55,125 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:06:55,238 - INFO - Miner / Successully mined and broadcasted the block 8
-2025-03-25 01:07:08,582 - INFO - Sent the block 9 to node 
-2025-03-25 01:07:08,582 - INFO -  Miner / Sending message: Sending mined block>(9, '0000001287cc471248a33745956a09eb595adcca8662a866a79b25865bd96a44', '000000602f12aeaa596ccf4421bb3c0c2b206adf33776147029278c2214c45cf', '2888ee403656e871a0d66152129fecdb0fe023e0931fd0576fc177016974bcf7', '25.03.2025 01:07:07', 6, 5407046)>13.34
-2025-03-25 01:07:08,583 - INFO -   Protocol  · Buffer size : 268
-2025-03-25 01:07:08,583 - INFO -   Protocol  · Buffer data : Sending mined block>(9, '0000001287cc471248a33745956a09eb595adcca8662a866a79b25865bd96a44', '000000602f12aeaa596ccf4421bb3c0c2b206adf33776147029278c2214c45cf', '2888ee403656e871a0d66152129fecdb0fe023e0931fd0576fc177016974bcf7', '25.03.2025 01:07:07', 6, 5407046)>13.34
-2025-03-25 01:07:08,583 - INFO -  Node / received from miner : asd - Sending mined block>(9, '0000001287cc471248a33745956a09eb595adcca8662a866a79b25865bd96a44', '000000602f12aeaa596ccf4421bb3c0c2b206adf33776147029278c2214c45cf', '2888ee403656e871a0d66152129fecdb0fe023e0931fd0576fc177016974bcf7', '25.03.2025 01:07:07', 6, 5407046)>13.34
-2025-03-25 01:07:08,584 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:07:08,594 - INFO -   Protocol  · Buffer size : 288
-2025-03-25 01:07:08,594 - INFO -   Protocol  · Buffer data : (9, 0, '25.03.2025 01:06:55', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'RR', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:07:08,595 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:07:08,595 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:07:08,599 - INFO - Successfully saved the block 9 and its transactions
-2025-03-25 01:07:08,605 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:07:08,606 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:07:08,606 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:07:08,606 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:07:08,711 - INFO - Miner / Successully mined and broadcasted the block 9
-2025-03-25 01:08:29,218 - INFO - Sent the block 10 to node 
-2025-03-25 01:08:29,218 - INFO -  Miner / Sending message: Sending mined block>(10, '00000051d1d783e9e2a34cd6974640c967d4c511a0b7dd1e9f78fcc82d13003a', '0000001287cc471248a33745956a09eb595adcca8662a866a79b25865bd96a44', '8b08d73a98aab674a31266378ec72d4463a757a0643f77cda2f2b9ce6a4bae02', '25.03.2025 01:08:28', 6, 32597517)>80.5
-2025-03-25 01:08:29,219 - INFO -   Protocol  · Buffer size : 269
-2025-03-25 01:08:29,219 - INFO -   Protocol  · Buffer data : Sending mined block>(10, '00000051d1d783e9e2a34cd6974640c967d4c511a0b7dd1e9f78fcc82d13003a', '0000001287cc471248a33745956a09eb595adcca8662a866a79b25865bd96a44', '8b08d73a98aab674a31266378ec72d4463a757a0643f77cda2f2b9ce6a4bae02', '25.03.2025 01:08:28', 6, 32597517)>80.5
-2025-03-25 01:08:29,219 - INFO -  Node / received from miner : asd - Sending mined block>(10, '00000051d1d783e9e2a34cd6974640c967d4c511a0b7dd1e9f78fcc82d13003a', '0000001287cc471248a33745956a09eb595adcca8662a866a79b25865bd96a44', '8b08d73a98aab674a31266378ec72d4463a757a0643f77cda2f2b9ce6a4bae02', '25.03.2025 01:08:28', 6, 32597517)>80.5
-2025-03-25 01:08:29,220 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:08:29,229 - INFO -   Protocol  · Buffer size : 290
-2025-03-25 01:08:29,229 - INFO -   Protocol  · Buffer data : (10, 0, '25.03.2025 01:07:08', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, '52C', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:08:29,230 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:08:29,230 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:08:29,234 - INFO - Successfully saved the block 10 and its transactions
-2025-03-25 01:08:29,240 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:08:29,240 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:08:29,240 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:08:29,240 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:08:29,362 - INFO - Miner / Successully mined and broadcasted the block 10
-2025-03-25 01:11:29,104 - INFO - Sent the block 11 to node 
-2025-03-25 01:11:29,105 - INFO -  Miner / Sending message: Sending mined block>(11, '0000000cd78d557a51de3f10674952c2583b8ac67494f5a80be1053bb3db359f', '00000051d1d783e9e2a34cd6974640c967d4c511a0b7dd1e9f78fcc82d13003a', '4151c3337057745e3a0508b392bb44230c2a8c8ae929a29b271cd7b86385a886', '25.03.2025 01:11:28', 6, 72814207)>179.74
-2025-03-25 01:11:29,105 - INFO -   Protocol  · Buffer size : 271
-2025-03-25 01:11:29,105 - INFO -   Protocol  · Buffer data : Sending mined block>(11, '0000000cd78d557a51de3f10674952c2583b8ac67494f5a80be1053bb3db359f', '00000051d1d783e9e2a34cd6974640c967d4c511a0b7dd1e9f78fcc82d13003a', '4151c3337057745e3a0508b392bb44230c2a8c8ae929a29b271cd7b86385a886', '25.03.2025 01:11:28', 6, 72814207)>179.74
-2025-03-25 01:11:29,106 - INFO -  Node / received from miner : asd - Sending mined block>(11, '0000000cd78d557a51de3f10674952c2583b8ac67494f5a80be1053bb3db359f', '00000051d1d783e9e2a34cd6974640c967d4c511a0b7dd1e9f78fcc82d13003a', '4151c3337057745e3a0508b392bb44230c2a8c8ae929a29b271cd7b86385a886', '25.03.2025 01:11:28', 6, 72814207)>179.74
-2025-03-25 01:11:29,106 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:11:29,115 - INFO -   Protocol  · Buffer size : 291
-2025-03-25 01:11:29,116 - INFO -   Protocol  · Buffer data : (11, 0, '25.03.2025 01:08:29', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'GMBL', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:11:29,117 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:11:29,117 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:11:29,121 - INFO - Successfully saved the block 11 and its transactions
-2025-03-25 01:11:29,127 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:11:29,127 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:11:29,127 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:11:29,127 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:11:29,241 - INFO - Miner / Successully mined and broadcasted the block 11
-2025-03-25 01:12:58,370 - INFO - Sent the block 12 to node 
-2025-03-25 01:12:58,371 - INFO -  Miner / Sending message: Sending mined block>(12, '000000f50b8f8f62cbf6dbc8f360cf022a1c6d1f95a5a1e9adffc7e765dc927e', '0000000cd78d557a51de3f10674952c2583b8ac67494f5a80be1053bb3db359f', '963729a2557cb69c577a0c5a9f7da6c551f11762c2f34ed8b61eee27869ba69b', '25.03.2025 01:12:58', 6, 36043850)>89.12
-2025-03-25 01:12:58,371 - INFO -   Protocol  · Buffer size : 270
-2025-03-25 01:12:58,371 - INFO -   Protocol  · Buffer data : Sending mined block>(12, '000000f50b8f8f62cbf6dbc8f360cf022a1c6d1f95a5a1e9adffc7e765dc927e', '0000000cd78d557a51de3f10674952c2583b8ac67494f5a80be1053bb3db359f', '963729a2557cb69c577a0c5a9f7da6c551f11762c2f34ed8b61eee27869ba69b', '25.03.2025 01:12:58', 6, 36043850)>89.12
-2025-03-25 01:12:58,371 - INFO -  Node / received from miner : asd - Sending mined block>(12, '000000f50b8f8f62cbf6dbc8f360cf022a1c6d1f95a5a1e9adffc7e765dc927e', '0000000cd78d557a51de3f10674952c2583b8ac67494f5a80be1053bb3db359f', '963729a2557cb69c577a0c5a9f7da6c551f11762c2f34ed8b61eee27869ba69b', '25.03.2025 01:12:58', 6, 36043850)>89.12
-2025-03-25 01:12:58,372 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:12:58,381 - INFO -   Protocol  · Buffer size : 291
-2025-03-25 01:12:58,381 - INFO -   Protocol  · Buffer data : (12, 0, '25.03.2025 01:11:29', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'PEPE', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:12:58,382 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:12:58,382 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:12:58,387 - INFO - Successfully saved the block 12 and its transactions
-2025-03-25 01:12:58,395 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:12:58,395 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:12:58,395 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:12:58,396 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:12:58,506 - INFO - Miner / Successully mined and broadcasted the block 12
-2025-03-25 01:12:58,767 - INFO - Sent the block 13 to node 
-2025-03-25 01:12:58,768 - INFO -  Miner / Sending message: Sending mined block>(13, '000000fa9243924b053c2cd215faf4421184b1f8589eef443f35334e87af2a28', '000000f50b8f8f62cbf6dbc8f360cf022a1c6d1f95a5a1e9adffc7e765dc927e', '230960ea43258d239045085db4e6ffd72a68c5cb84c328f29de58d98086b9f1d', '25.03.2025 01:12:58', 6, 99773)>0.25
-2025-03-25 01:12:58,768 - INFO -   Protocol  · Buffer size : 266
-2025-03-25 01:12:58,768 - INFO -   Protocol  · Buffer data : Sending mined block>(13, '000000fa9243924b053c2cd215faf4421184b1f8589eef443f35334e87af2a28', '000000f50b8f8f62cbf6dbc8f360cf022a1c6d1f95a5a1e9adffc7e765dc927e', '230960ea43258d239045085db4e6ffd72a68c5cb84c328f29de58d98086b9f1d', '25.03.2025 01:12:58', 6, 99773)>0.25
-2025-03-25 01:12:58,768 - INFO -  Node / received from miner : asd - Sending mined block>(13, '000000fa9243924b053c2cd215faf4421184b1f8589eef443f35334e87af2a28', '000000f50b8f8f62cbf6dbc8f360cf022a1c6d1f95a5a1e9adffc7e765dc927e', '230960ea43258d239045085db4e6ffd72a68c5cb84c328f29de58d98086b9f1d', '25.03.2025 01:12:58', 6, 99773)>0.25
-2025-03-25 01:12:58,769 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:12:58,777 - INFO -   Protocol  · Buffer size : 289
-2025-03-25 01:12:58,778 - INFO -   Protocol  · Buffer data : (13, 0, '25.03.2025 01:12:58', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'RR', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:12:58,779 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:12:58,779 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:12:58,783 - INFO - Successfully saved the block 13 and its transactions
-2025-03-25 01:12:58,789 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:12:58,789 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:12:58,789 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:12:58,790 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:12:58,893 - INFO - Miner / Successully mined and broadcasted the block 13
-2025-03-25 01:13:05,912 - INFO - Sent the block 14 to node 
-2025-03-25 01:13:05,912 - INFO -  Miner / Sending message: Sending mined block>(14, '000000c882d50b0124ff3a67a0ffbaabb88324f2a6bd304a055bc0fcb462099d', '000000fa9243924b053c2cd215faf4421184b1f8589eef443f35334e87af2a28', '3a73fdbfc60720eabaa0d893a3e1515f12493d97b2b73e6e17404318dca99b96', '25.03.2025 01:13:05', 6, 2831932)>7.01
-2025-03-25 01:13:05,913 - INFO -   Protocol  · Buffer size : 268
-2025-03-25 01:13:05,913 - INFO -   Protocol  · Buffer data : Sending mined block>(14, '000000c882d50b0124ff3a67a0ffbaabb88324f2a6bd304a055bc0fcb462099d', '000000fa9243924b053c2cd215faf4421184b1f8589eef443f35334e87af2a28', '3a73fdbfc60720eabaa0d893a3e1515f12493d97b2b73e6e17404318dca99b96', '25.03.2025 01:13:05', 6, 2831932)>7.01
-2025-03-25 01:13:05,913 - INFO -  Node / received from miner : asd - Sending mined block>(14, '000000c882d50b0124ff3a67a0ffbaabb88324f2a6bd304a055bc0fcb462099d', '000000fa9243924b053c2cd215faf4421184b1f8589eef443f35334e87af2a28', '3a73fdbfc60720eabaa0d893a3e1515f12493d97b2b73e6e17404318dca99b96', '25.03.2025 01:13:05', 6, 2831932)>7.01
-2025-03-25 01:13:05,914 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:13:05,924 - INFO -   Protocol  · Buffer size : 290
-2025-03-25 01:13:05,924 - INFO -   Protocol  · Buffer data : (14, 0, '25.03.2025 01:12:58', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'SAN', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:13:05,925 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:13:05,925 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:13:05,929 - INFO - Successfully saved the block 14 and its transactions
-2025-03-25 01:13:05,935 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:13:05,935 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:13:05,935 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:13:05,935 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:13:06,058 - INFO - Miner / Successully mined and broadcasted the block 14
-2025-03-25 01:14:15,907 - INFO - Sent the block 15 to node 
-2025-03-25 01:14:15,907 - INFO -  Miner / Sending message: Sending mined block>(15, '0000003ea12baae92b3c215de0a63edde4658ba6ecb53e867ce808b104f0f08e', '000000c882d50b0124ff3a67a0ffbaabb88324f2a6bd304a055bc0fcb462099d', 'f0135e8c4f9dbc2f0bc88108f7504f717e24385ad3382ddcb1bac2fd72399dd9', '25.03.2025 01:14:14', 6, 27868635)>69.84
-2025-03-25 01:14:15,908 - INFO -   Protocol  · Buffer size : 270
-2025-03-25 01:14:15,908 - INFO -   Protocol  · Buffer data : Sending mined block>(15, '0000003ea12baae92b3c215de0a63edde4658ba6ecb53e867ce808b104f0f08e', '000000c882d50b0124ff3a67a0ffbaabb88324f2a6bd304a055bc0fcb462099d', 'f0135e8c4f9dbc2f0bc88108f7504f717e24385ad3382ddcb1bac2fd72399dd9', '25.03.2025 01:14:14', 6, 27868635)>69.84
-2025-03-25 01:14:15,908 - INFO -  Node / received from miner : asd - Sending mined block>(15, '0000003ea12baae92b3c215de0a63edde4658ba6ecb53e867ce808b104f0f08e', '000000c882d50b0124ff3a67a0ffbaabb88324f2a6bd304a055bc0fcb462099d', 'f0135e8c4f9dbc2f0bc88108f7504f717e24385ad3382ddcb1bac2fd72399dd9', '25.03.2025 01:14:14', 6, 27868635)>69.84
-2025-03-25 01:14:15,908 - INFO -  Miner / Sending message: Stop recieving transactions
-2025-03-25 01:14:15,917 - INFO -   Protocol  · Buffer size : 291
-2025-03-25 01:14:15,917 - INFO -   Protocol  · Buffer data : (15, 0, '25.03.2025 01:13:06', '0000000000000000000000000000000000000000000000000000000000000000', 'RRdcff92bc9ff4aa60e3cafe147e197d9ac46f', 100.0, 'GMBL', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
-2025-03-25 01:14:15,918 - INFO -   Protocol  · Buffer size : 27
-2025-03-25 01:14:15,918 - INFO -   Protocol  · Buffer data : Stop recieving transactions
-2025-03-25 01:14:15,922 - INFO - Successfully saved the block 15 and its transactions
-2025-03-25 01:14:15,929 - INFO -  Node / Sending message: Saved the whole block>6
-2025-03-25 01:14:15,929 - INFO -   Protocol  · Buffer size : 23
-2025-03-25 01:14:15,929 - INFO -   Protocol  · Buffer data : Saved the whole block>6
-2025-03-25 01:14:15,929 - INFO -  Miner / Received from Node : Saved the whole block>6
-2025-03-25 01:14:16,045 - INFO - Miner / Successully mined and broadcasted the block 15
+2025-03-25 23:20:57,592 - INFO -  Node / starting
+2025-03-25 23:20:57,594 - INFO - Current block is 35, with the difficulty of 6
+2025-03-25 23:20:57,594 - INFO -  Node / listening on 0.0.0.0
+2025-03-25 23:21:02,605 - INFO -  Client / Sending message: LOGIN>yyy>yyy
+2025-03-25 23:21:02,606 - INFO -   Protocol  · Buffer size : 13
+2025-03-25 23:21:02,606 - INFO -   Protocol  · Buffer data : LOGIN>yyy>yyy
+2025-03-25 23:21:02,606 - INFO -  Node / Sending message: Successfully logged in.>RRdcff92bc9ff4aa60e3cafe147e197d9ac46f
+2025-03-25 23:21:02,606 - INFO -   Protocol  · Buffer size : 62
+2025-03-25 23:21:02,607 - INFO -   Protocol  · Buffer data : Successfully logged in.>RRdcff92bc9ff4aa60e3cafe147e197d9ac46f
+2025-03-25 23:21:02,747 - INFO -  Client / Sending message: yyy>1
+2025-03-25 23:21:02,747 - INFO -   Protocol  · Buffer size : 5
+2025-03-25 23:21:02,747 - INFO -   Protocol  · Buffer data : yyy>1
+2025-03-25 23:21:02,747 - INFO -  Node / Active connection 1
+2025-03-25 23:21:02,748 - INFO - Node / New client : yyy connected
+2025-03-25 23:21:02,748 - INFO -  Client / Sending message: Can you send me the blockchain from block>35
+2025-03-25 23:21:02,748 - INFO -   Protocol  · Buffer size : 44
+2025-03-25 23:21:02,748 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>35
+2025-03-25 23:21:02,748 - INFO -  \u8def Client \u8def ('127.0.0.1', 2750) connected
+2025-03-25 23:21:02,748 - INFO -  Node / Received from client : yyy - Can you send me the blockchain from block>35
+2025-03-25 23:21:02,748 - INFO -  Node / Sending message: UPDATED>35>6
+2025-03-25 23:21:02,749 - INFO -  Node / Updated: yyy
+2025-03-25 23:21:02,749 - INFO -   Protocol  · Buffer size : 12
+2025-03-25 23:21:02,751 - INFO -   Protocol  · Buffer data : UPDATED>35>6
+2025-03-25 23:21:02,751 - INFO -  Client / Received from Node : UPDATED>35>6
+2025-03-25 23:29:20,814 - INFO -  Client / Sending message: LOGIN>yyy>yyy
+2025-03-25 23:29:20,814 - INFO -   Protocol  · Buffer size : 13
+2025-03-25 23:29:20,814 - INFO -   Protocol  · Buffer data : LOGIN>yyy>yyy
+2025-03-25 23:29:20,815 - INFO -  Node / Sending message: Successfully logged in.>RRdcff92bc9ff4aa60e3cafe147e197d9ac46f
+2025-03-25 23:29:20,816 - INFO -   Protocol  · Buffer size : 62
+2025-03-25 23:29:20,816 - INFO -   Protocol  · Buffer data : Successfully logged in.>RRdcff92bc9ff4aa60e3cafe147e197d9ac46f
+2025-03-25 23:29:20,962 - INFO -  Client / Sending message: yyy>1
+2025-03-25 23:29:20,962 - INFO -   Protocol  · Buffer size : 5
+2025-03-25 23:29:20,963 - INFO -   Protocol  · Buffer data : yyy>1
+2025-03-25 23:29:20,963 - INFO -  Node / Active connection 2
+2025-03-25 23:29:20,964 - INFO -  Client / Sending message: Can you send me the blockchain from block>35
+2025-03-25 23:29:20,964 - INFO -  \u8def Client \u8def ('127.0.0.1', 3796) connected
+2025-03-25 23:29:20,965 - INFO - Node / New client : yyy connected
+2025-03-25 23:29:20,965 - INFO -   Protocol  · Buffer size : 44
+2025-03-25 23:29:20,965 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>35
+2025-03-25 23:29:20,965 - INFO -  Node / Received from client : yyy - Can you send me the blockchain from block>35
+2025-03-25 23:29:20,966 - INFO -  Node / Sending message: UPDATED>35>6
+2025-03-25 23:29:20,966 - INFO -  Node / Updated: yyy
+2025-03-25 23:29:20,966 - INFO -   Protocol  · Buffer size : 12
+2025-03-25 23:29:20,970 - INFO -   Protocol  · Buffer data : UPDATED>35>6
+2025-03-25 23:29:20,970 - INFO -  Client / Received from Node : UPDATED>35>6

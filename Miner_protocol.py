@@ -73,7 +73,7 @@ def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
         if not len(transaction_tuple)==8: # if wrong len
             return False, "Wrong transaction format"
         
-        hexedpublickey = transaction_tuple[7]
+        hexedpublickey = transaction_tuple[6]
         public_key:VerifyingKey = VerifyingKey.from_string(binascii.unhexlify(hexedpublickey),NIST256p) # extracting he key
 
         if address_from_key(public_key)!=transaction_tuple[2]:
@@ -96,7 +96,7 @@ def simple_verify(transmsg_full: str, conn: sqlite3.Connection):
         if nonce>int(transaction_tuple[0]):
             return False, "Wrong nonce"
         
-        hexedsignature = transaction_tuple[6]
+        hexedsignature = transaction_tuple[7]
 
 
         transaction: tuple = transaction_tuple[:-2] #transaction without the scriptsig
@@ -172,12 +172,6 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
         conn.close()
         return False, "Miner error", []
     
-    #except Exception as e:
-    #    if str(e).startswith("UNIQUE constraint"): # if recieving a saved block
-    #        return False, "Already have the block"
-    #    #log the exception
-    #    write_to_log(f" MinerP / couldnt save the block header; {e}")
-    #    return False, "Miner error"
   
 def recieve_trs(skt: socket, conn: sqlite3.Connection):
     '''
@@ -244,7 +238,7 @@ def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqli
                 cursor.execute(f'''
                 INSERT INTO balances VALUES (?, ?, ?, ?)
                 ''', (transaction_tuple[3], 0, token, 1))
-                return False , "Error, your account is not registered in the chain / wrong nonce"
+                conn.commit()
             
             cursorp.execute(f'''
             INSERT INTO balances VALUES (?, ?, ?, ?)
@@ -290,7 +284,7 @@ def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqli
         write_to_log(" MinerBL / Failed to verify transaction; "+e)
         return False, f"Error, failed to verify transaction; {e}"
 
-def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in the mempool
+def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in the chain
     cursorp = connp.cursor()
     try:
         trans_tuple = ast.literal_eval(trans)
@@ -313,10 +307,55 @@ def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in t
             ''', (recv, 0, token, 1))
         connp.commit()
         
-        # update senders if not miners reward
+        # update senders balance and nonce if not miners reward
         if sender!="0"*64:
             cursorp.execute(f'''
             UPDATE balances SET balance = balance - {amount_spent} WHERE address = '{sender}' AND token = '{token}'
+            ''') 
+            cursorp.execute(f'''
+            UPDATE balances SET nonce = nonce + 1 WHERE address = '{sender}' AND token = '{token}'
+            ''') 
+        # update the recievers
+        cursorp.execute(f'''
+        UPDATE balances SET balance = balance + {amount_spent} WHERE address = '{recv}' AND token = '{token}'
+        ''')
+        connp.commit()
+
+        return True, trans_tuple[4] # if no errors return the sender address
+    except Exception as e: # reset the addreses and return error
+
+        write_to_log(f" MinerP / Failed to update balance after transaction ; {e}")
+        return False, f" Error, failed to update balance after transaction ; {e}"
+
+def calculate_balik_raw(trans, connp:sqlite3.Connection): # update balances in the mempool
+    cursorp = connp.cursor()
+    try:
+        trans_tuple = ast.literal_eval(trans)
+        #get the before addresses for handling failure
+        # trans ()
+        amount_spent = trans_tuple[4]
+        token = trans_tuple[5]
+        sender = trans_tuple[2]
+        recv = trans_tuple[3]
+
+        cursorp.execute('''
+            SELECT 1 FROM balances WHERE token = ? AND address = ?
+            ''', (token, recv))
+
+        if cursorp.fetchone()==None:
+            print("No mine address")
+            cursorp.execute('''
+            INSERT INTO balances VALUES (?, ?, ?, ?)
+            ''', (recv, 0, token, 1))
+        connp.commit()
+        
+        # update senders balance and nonce if not miners reward
+        if sender!="0"*64:
+            cursorp.execute(f'''
+            UPDATE balances SET balance = balance - {amount_spent} WHERE address = '{sender}' AND token = '{token}'
+            ''') 
+            cursorp.execute(f'''
+            UPDATE balances SET nonce = nonce + 1 WHERE address = '{sender}' AND token = '{token}'
             ''') 
         # update the recievers
         cursorp.execute(f'''
@@ -332,13 +371,13 @@ def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in t
     
 def address_from_key(public_key: VerifyingKey):
     hexedpub = binascii.hexlify(public_key.to_string("compressed"))
-
+    
     firsthash = hashlib.sha256(hexedpub).digest()
     secdhash = hashlib.blake2s(firsthash, digest_size=16)
 
     checksum = hashlib.sha256(secdhash.digest()).hexdigest()[:4] #grabbing the dirst 4 bytes of the address
 
-    full_address = "RR" + secdhash.hexdigest() + checksum
+    return "RR" + secdhash.hexdigest() + checksum
 
 def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_header:str):
     cursor = conn.cursor()
@@ -436,7 +475,6 @@ def saveblockchain(msg, skt:socket, conn):
         for tr in trans_list:
             trans_tuple = ast.literal_eval(tr)
 
-            amount_spent = trans_tuple[5]
             token = trans_tuple[6]
             recv = trans_tuple[4]
             cursor.execute('''
@@ -526,12 +564,19 @@ def miner_on_start(skt:socket, conn, connp):
     conn.commit() 
     connp.commit()
 
+    cursorp.execute(f"SELECT 1 FROM transactions")
+
+    if cursorp.fetchone():
+        cursorp.execute(f"DELETE FROM transactions")
+        connp.commit()
+    
     cursor.execute('''
         SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1
         ''')
 
     lastb_id= cursor.fetchone() # get the last block
-
+    cursor.close()
+    cursorp.close()
     if lastb_id:
         skt.send(format_data(CHAINUPDATEREQUEST + f">{lastb_id[0]}").encode())
         return lastb_id

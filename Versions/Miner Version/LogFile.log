@@ -1,0 +1,4 @@
+2025-03-26 03:09:08,686 - INFO -  Miner / Sending message: asd>2
+2025-03-26 03:09:08,748 - INFO -   Protocol  · Buffer size : 11
+2025-03-26 03:09:08,748 - INFO -   Protocol  · Buffer data : UPDATED>6>7
+2025-03-26 03:09:08,748 - INFO -  Miner / Received from Node : UPDATED>6>7

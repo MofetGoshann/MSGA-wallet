@@ -1,0 +1,6 @@
+2025-03-26 03:09:22,445 - INFO -  Client / Sending message: fff>1
+2025-03-26 03:09:22,447 - INFO -  Client / Sending message: Can you send me the blockchain from block>6
+2025-03-26 03:09:22,447 - INFO -  \u8def Client \u8def ('127.0.0.1', 45380) connected
+2025-03-26 03:09:22,448 - INFO -   Protocol  · Buffer size : 11
+2025-03-26 03:09:22,451 - INFO -   Protocol  · Buffer data : UPDATED>6>7
+2025-03-26 03:09:22,451 - INFO -  Client / Received from Node : UPDATED>6>7

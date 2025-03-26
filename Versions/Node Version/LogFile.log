@@ -1,0 +1,27 @@
+2025-03-26 03:08:40,661 - INFO -  Node / starting
+2025-03-26 03:08:40,664 - INFO - Current block is 6, with the difficulty of 7
+2025-03-26 03:08:40,664 - INFO -  Node / listening on 0.0.0.0
+2025-03-26 03:09:08,685 - INFO -   Protocol  · Buffer size : 53
+2025-03-26 03:09:08,685 - INFO -   Protocol  · Buffer data : Miner address:>RR81c8e7b38f6559f99b0ed0580d5b04aa9e80
+2025-03-26 03:09:08,685 - INFO -  Node / Sending message: Valid
+2025-03-26 03:09:08,686 - INFO -   Protocol  · Buffer size : 5
+2025-03-26 03:09:08,686 - INFO -   Protocol  · Buffer data : asd>2
+2025-03-26 03:09:08,687 - INFO -  Node / Active connection 1
+2025-03-26 03:09:08,687 - INFO - Node / New miner : asd connected
+2025-03-26 03:09:08,747 - INFO -   Protocol  · Buffer size : 43
+2025-03-26 03:09:08,747 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>6
+2025-03-26 03:09:08,747 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>6
+2025-03-26 03:09:08,748 - INFO -  Node / Sending message: UPDATED>6>7
+2025-03-26 03:09:08,748 - INFO -  Node / Updated: asd
+2025-03-26 03:09:22,315 - INFO -   Protocol  · Buffer size : 13
+2025-03-26 03:09:22,315 - INFO -   Protocol  · Buffer data : LOGIN>fff>fff
+2025-03-26 03:09:22,315 - INFO -  Node / Sending message: Successfully logged in.>RRb86a96d573dd0405dc1dfca4dceceab9a464
+2025-03-26 03:09:22,445 - INFO -   Protocol  · Buffer size : 5
+2025-03-26 03:09:22,446 - INFO -   Protocol  · Buffer data : fff>1
+2025-03-26 03:09:22,446 - INFO -  Node / Active connection 2
+2025-03-26 03:09:22,446 - INFO - Node / New client : fff connected
+2025-03-26 03:09:22,447 - INFO -   Protocol  · Buffer size : 43
+2025-03-26 03:09:22,447 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>6
+2025-03-26 03:09:22,447 - INFO -  Node / Received from client : fff - Can you send me the blockchain from block>6
+2025-03-26 03:09:22,447 - INFO -  Node / Sending message: UPDATED>6>7
+2025-03-26 03:09:22,447 - INFO -  Node / Updated: fff

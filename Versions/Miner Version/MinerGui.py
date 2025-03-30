@@ -26,10 +26,11 @@ BACKGROUND_IMAGE: str = "Images\\gui_bg_small.png"
 
 class DraggableTitleBar(QLabel):
     
-    def __init__(s, app_name:str,parent=None):
+    def __init__(s, app_name:str,on_close=None,parent=None):
         super().__init__(parent)
         s.setMouseTracking(True)
         s.dragging = False
+        s.on_close = on_close
         s.offset = QPoint()
 
         title_login_layout = QHBoxLayout(s)
@@ -78,11 +79,14 @@ class DraggableTitleBar(QLabel):
     def __minimize(s):
         s.parent().showMinimized()
     
-
-
-    
     def __close_main(s):
+        if s.on_close!=None:
+            s.on_close()
+
         s.parent().close()
+    
+    def set_on_close(s, on_click):
+        s.on_close = on_click
 
 class MinerGUI:
 
@@ -126,10 +130,10 @@ class MinerGUI:
         s._window.setCentralWidget(s._central_widget)
         
         # Title bar (simplified)
-        title_bar = DraggableTitleBar("XD Wallet Miner", s._window)
-        title_bar.setStyleSheet("background-color: #000080; border-radius: 2 2 0 0")
-        title_bar.setGeometry(0,0,s._window.width(),30)
-        title_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        s.title_bar = DraggableTitleBar("XD Wallet Miner", None,s._window)
+        s.title_bar.setStyleSheet("background-color: #000080; border-radius: 2 2 0 0")
+        s.title_bar.setGeometry(0,0,s._window.width(),30)
+        s.title_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         # Create the ui elements
         s.__create_elements()
@@ -206,7 +210,6 @@ class MinerGUI:
         
 
     
-    
     def __connect_event(s, address):
 
 
@@ -215,8 +218,7 @@ class MinerGUI:
 
             s._miner: Miner = Miner("asd", address, s._skt)
 
-            # check if we successfully created socket
-            # and ready to go
+            s.title_bar.set_on_close(s._miner.disconnect)
 
             s.start_button.setDisabled(True)
                 

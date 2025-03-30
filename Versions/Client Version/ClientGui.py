@@ -1,15 +1,7 @@
-from tkinter import *
-from tkinter import ttk
-from tkinter import messagebox
 from ClientBL import ClientBL
 from protocol import *
 from Client_protocol import *
-from PIL import Image, ImageTk
-import PyQt5
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, QGridLayout, QSpacerItem, QSizePolicy, QToolTip, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView
-from PyQt5.QtGui import QPixmap, QIcon, QImage, QPainter, QPen, QColor, QBrush, QCursor
-from PyQt5.QtCore import Qt, QSize, QPoint, QRect, QTimer
-import sys
+
 #  endregion
 
 
@@ -33,6 +25,7 @@ WNW_ICON = "Images/wallet.ico"
 BAL_ICON = "Images/dolla.png"
 HIS_ICON ="Images/history.png"
 NOT_ICON = "Images/notif.png"
+RED_NOT_ICON = "Images/rednotif.png"
 
 class HoverLabel(QLabel):
     def __init__(self, text="", tooltip_text="", parent=None):
@@ -80,6 +73,220 @@ class HoverLabel(QLabel):
             self.tooltip_widget = None
         super().leaveEvent(event)
 
+class WindowsXPNotification(QLabel):
+    clicked = pyqtSignal(str)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMouseTracking(True)
+        self._notification_type = ""
+        
+        # Windows XP style colors
+        self._normal_style = """
+            QLabel {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #F0F0F0, stop:1 #D4D0C8);
+                border: 2px solid #003C74;
+                border-radius: 4px;
+                padding: 6px;
+                color: black;
+                font: 14px "Tahoma";
+            }
+        """
+        self._hover_style = """
+            QLabel {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #E2F0FD, stop:1 #B8DCFF);
+                border: 2px solid #0058B3;
+                border-radius: 4px;
+                padding: 6px;
+                color: black;
+                font: 14px "Tahoma";
+            }
+        """
+        self.setStyleSheet(self._normal_style)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedSize(300, 80)
+        
+    def enterEvent(self, event):
+        self.setStyleSheet(self._hover_style)
+        
+    def leaveEvent(self, event):
+        self.setStyleSheet(self._normal_style)
+        
+    def mousePressEvent(self, event):
+        self.clicked.emit(self._notification_type)
+        super().mousePressEvent(event)
+        self.close()
+
+class SecWindow(QMainWindow):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._is_closed = False  # Track closed state
+    
+    def closeEvent(self, event):
+        self._is_closed = True
+        event.accept()  # Allow the window to close
+    
+    def isClosed(self):
+        return self._is_closed
+
+class NotificationBridge(QObject):
+    # Define a signal to safely pass notifications to the main thread
+    notification_requested = pyqtSignal(str, str)  # (type, message)
+
+    def __init__(self, notif_manager, address):
+        super().__init__()
+        self.address = address
+        self.notif_manager = notif_manager
+        self.notification_requested.connect(self._show_notification)
+
+    @pyqtSlot(str, str)
+    def _show_notification(self, typpe, message):
+        """Slot that runs in the main thread"""
+        self.notif_manager.show_notification(typpe, message)
+
+    def notif_add(self, typpe, tr):
+        """Can be called from any thread"""
+        try:
+            if type(tr) == str:
+                tr_tup = ast.literal_eval(tr)
+            else:
+                tr_tup = tr[0]
+
+            if typpe == True:
+                amount = tr_tup[5]
+                token = tr_tup[6]
+                if tr_tup[4] == self.address:
+                    typpe = "received"
+                else:
+                    typpe = "included"
+            elif typpe in ("verified", "failed"):
+                amount = tr_tup[4]
+                token = tr_tup[5]
+            
+            tokenvalue = f"{amount} {token}"
+            # Emit signal instead of direct call
+            self.notification_requested.emit(typpe, tokenvalue)
+            
+        except Exception:
+            traceback.print_exc()
+
+class XPNotificationManager:
+    def __init__(self, parent_window, on_click):
+        self.on_click = on_click
+        self.parent = parent_window
+        self.notifications = []
+        self.spacing = 5
+        self.max_notifications = 3
+        
+        # XP-style taskbar button (optional)
+        self.taskbar_button = QPushButton("Notifications")
+        self.taskbar_button.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #F0F0F0, stop:1 #D4D0C8);
+                border: 1px solid #7A96DF;
+                border-radius: 3px;
+                padding: 3px 8px;
+                color: black;
+                font: 11px "Tahoma";
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #E2F0FD, stop:1 #B8DCFF);
+            }
+            QPushButton:pressed {
+                background: #C2D8F5;
+            }
+        """)
+        self.taskbar_button.setFixedHeight(24)
+        
+    def show_notification(self, notification_type, message):
+        if len(self.notifications) >= self.max_notifications:
+            oldest = self.notifications.pop(0)
+            oldest.hide()
+            oldest.deleteLater()
+            
+        notif = WindowsXPNotification(self.parent)
+        notif._notification_type = notification_type
+        
+        # XP-style icons and colors
+        if notification_type == "received":
+            icon = "↓"
+            color = "#006600"  # green
+            title = f"Received {message}"
+        elif notification_type=="included":
+            icon = "✓"
+            color = "#0033CC"  # blue
+            title = f"Transaction of {message}\n is included in the block"
+        elif notification_type=="failed":
+            icon = "✕"
+            color = "#e33434"  # red
+            title = f"Transaction of {message}\n failed verification"
+        else:
+            icon = "✓"
+            color = "#0033CC"
+            title = f"Transaction of {message}\n is verified"
+        notif.setText(f"""
+            <div style='font-size: 14px; font-family: Tahoma;'>
+                <span style='color: {color}; font-size: 16px;'>{icon}</span>
+                <b>{title}</b><br>
+            </div>
+        """)
+        
+        # XP-style shadow (simpler than modern shadows)
+        shadow = QGraphicsDropShadowEffect(notif)
+        shadow.setBlurRadius(8)
+        shadow.setColor(QColor(0, 0, 0, 100))
+        shadow.setOffset(2, 2)
+        notif.setGraphicsEffect(shadow)
+        
+        notif.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        notif.clicked.connect(self.on_notification_clicked)
+        
+        self.position_notification(notif)
+        notif.show()
+        
+        # XP-style fade in animation
+        animation = QPropertyAnimation(notif, b"windowOpacity")
+        animation.setDuration(300)
+        animation.setStartValue(0)
+        animation.setEndValue(1)
+        animation.start()
+        
+        # Auto-close with XP-style slide animation
+        QTimer.singleShot(5000, lambda: self.fade_out_notification(notif))
+        
+        self.notifications.append(notif)
+        
+    def position_notification(self, notification):
+        screen_rect = self.parent.rect()
+        x = screen_rect.right() - notification.width() - 10
+        y = screen_rect.bottom() - notification.height() - 70
+        
+        # Stack upwards
+        for notif in self.notifications:
+            y -= notif.height() + self.spacing
+        
+        notification.move(x, max(y, 10))
+        
+    def fade_out_notification(self, notification):
+        if notification in self.notifications:
+            self.notifications.remove(notification)
+            
+            # XP-style slide out animation
+            animation = QPropertyAnimation(notification, b"pos")
+            animation.setDuration(300)
+            animation.setStartValue(notification.pos())
+            animation.setEndValue(QPoint(notification.x(), notification.y() + 50))
+            animation.finished.connect(notification.deleteLater)
+            animation.start()
+            
+    def on_notification_clicked(self):
+        # XP-style feedback sound
+        self.on_click()
+        
 class TaskbarButton(QPushButton):
     def __init__(s, window, icon, parent=None):
         super().__init__(parent)
@@ -89,7 +296,7 @@ class TaskbarButton(QPushButton):
         # Set an icon for the button
         s.setIcon(QIcon(icon))  # Replace with your icon file path
         s.setIconSize(s.size())  # Set icon size to match button size
-
+        s.parent = parent
         # Set initial style
         s.update_style()
 
@@ -114,10 +321,10 @@ class TaskbarButton(QPushButton):
 
     def update_style(s):
         """Update the button's style based on the window's focus state."""
-        if not s.window.isVisible():
+        if s.window.isClosed()==True:
             s.close()
         
-        if s.window.isActiveWindow():
+        if not s.window.isHidden() and s.window.isActiveWindow():
             s.setStyleSheet("""
                 QPushButton {
                     background-color: rgba(6, 0, 128, 0.5);
@@ -132,6 +339,70 @@ class TaskbarButton(QPushButton):
                     border: 2px solid gray;
                 }
             """)
+
+class DraggableTitleBar_withdisc(QLabel):
+    
+    def __init__(s, app_name:str,on_close=None,parent=None):
+        super().__init__(parent)
+        s.setMouseTracking(True)
+        s.dragging = False
+        s.on_close = on_close
+        s.offset = QPoint()
+
+        title_login_layout = QHBoxLayout(s)
+        title_login_layout.setContentsMargins(5, 0, 5, 0)
+
+        # Title label
+        s.title_label = QLabel(app_name)
+        s.title_label.setStyleSheet("color: white; font: bold 14px;")
+        title_login_layout.addWidget(s.title_label)
+        
+
+        # Minimize button
+        s.minimize_button = QPushButton("─")
+        s.minimize_button.setFixedSize(25, 25)
+        s.minimize_button.setStyleSheet("color: white")
+        s.minimize_button.clicked.connect(s.__minimize)
+        title_login_layout.addWidget(s.minimize_button)
+
+        # Close button
+        s.close_button = QPushButton("✕")
+        s.close_button.setFixedSize(25, 25)
+        s.close_button.setStyleSheet("color: white")
+        s.close_button.clicked.connect(s.__close_main)
+        title_login_layout.addWidget(s.close_button)
+
+    def mousePressEvent(s, event):
+        """Start dragging when the left mouse button is pressed."""
+        if event.button() == Qt.LeftButton:
+            s.dragging = True
+            s.offset = event.globalPos() - s.parent().pos()  # Calculate offset
+        super().mousePressEvent(event)
+        event.accept()
+
+    def mouseMoveEvent(s, event):
+        """Move the entire window when dragging."""
+        if s.dragging:
+            s.parent().move(event.globalPos() - s.offset)  # Move the parent window
+        super().mouseMoveEvent(event)
+        event.accept()
+
+    def mouseReleaseEvent(s, event):
+        """Stop dragging when the left mouse button is released."""
+        s.dragging = False
+
+    
+    def __minimize(s):
+        s.parent().showMinimized()
+    
+    def __close_main(s):
+        if s.on_close!=None:
+            s.on_close()
+
+        s.parent().close()
+    
+    def set_on_close(s, on_click):
+        s.on_close = on_click
 
 class DraggableTitleBar(QLabel):
     
@@ -185,13 +456,12 @@ class DraggableTitleBar(QLabel):
 
     
     def __minimize(s):
-        s.parent().showMinimized()
-    
-
-
+        s.parent().hide()
     
     def __close_main(s):
         s.parent().close()
+
+    
 
 
 class DesktopShortcut(QWidget):
@@ -381,6 +651,7 @@ class ClientGUI:
         s._window = None
         s._login_window = None
         s._reg_window = None
+        s._history_window = None
         s._translist = []
         s.tickerlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         s.token_name_list = ["NataliCoin", "TalCoin", "SanyaCoin", "PepeCoin", "MonsterCoin", "MakeShevahGreatAgainCoin", "52Coin", "GambleCoin", "MegiraCoin", "VipeRRCoin"]
@@ -413,19 +684,22 @@ class ClientGUI:
         s._app = QApplication([])
         s._window = QMainWindow()
 
-        s._window.setWindowTitle("XP Wallet")
+        s._window.setWindowTitle("XP Wallet - Client")
         s._window.setAttribute(Qt.WA_TranslucentBackground)
         s._window.setWindowFlags(Qt.FramelessWindowHint)
         s._window.setWindowIcon(QIcon(WNW_ICON))
-
+        
         s._central_widget = QWidget(s._window)
         s._window.setCentralWidget(s._central_widget)
-
+        
         s.__setup_images()
         # Disable resize to fit with the background image
         s._window.setGeometry(300, 100, s._back_img_size[0], s._back_img_size[1]+s._start_img_size[1]+28)  # Set window size and position
         #s._window.setFixedSize(s._back_img_size[0], s._back_img_size[1]+s._start_img_size[1]+30)
+        s.notif_manager = XPNotificationManager(s._window, s.notif_click)
         
+
+
         # Now we need to set up the background of our window with
         # our background image
 
@@ -514,7 +788,8 @@ class ClientGUI:
         s._task_layout.insertSpacing(0,s._start_img_size[0])
         s._task_layout.setContentsMargins(5, 0, 5, 0)
         s._taskbar.setLayout(s._task_layout)
-        s.title_bar = DraggableTitleBar("XP Wallet", s._window)
+
+        s.title_bar = DraggableTitleBar_withdisc("XP Wallet",None,s._window)
         s.title_bar.setStyleSheet("background-color: #000080; border-radius: 2 2 0 0")
         
         s.title_bar.setGeometry(0,0,s._back_img_size[0],30)
@@ -549,7 +824,7 @@ class ClientGUI:
 
     def openlogingui(s):
 
-        s._login_window = QMainWindow(s._window) 
+        s._login_window = SecWindow(s._window) 
         s._login_window.setAttribute(Qt.WA_TranslucentBackground)
         s._login_window.setWindowTitle("Login")
         s._login_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window) # remove the title bar
@@ -716,7 +991,7 @@ class ClientGUI:
         
             
     def openreggui(s):
-        s._reg_window = QMainWindow(s._window) 
+        s._reg_window = SecWindow(s._window) 
         s._reg_window.setAttribute(Qt.WA_TranslucentBackground)
         s._reg_window.setWindowTitle("Register")
         s._reg_window.setWindowFlags(Qt.FramelessWindowHint|Qt.Window) # remove the title bar
@@ -937,7 +1212,7 @@ class ClientGUI:
     
     # Fix tooltips application-wide
 
-        s._balance_window = QMainWindow(s._window)
+        s._balance_window = SecWindow(s._window)
         s._balance_window.setAttribute(Qt.WA_TranslucentBackground)
         s._balance_window.setWindowTitle("Balances")
         s._balance_window.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
@@ -1087,7 +1362,7 @@ class ClientGUI:
 
     def create_send_window(s):
         # Window configuration
-        s._send_window = QMainWindow(s._balance_window) 
+        s._send_window = SecWindow(s._balance_window) 
 
         s._send_window.setAttribute(Qt.WA_TranslucentBackground)
         s._send_window.setWindowTitle("Send Tokens")
@@ -1246,7 +1521,7 @@ class ClientGUI:
             s._err_label.setText(f"Failed to send transaction to {recv_address}")
 
     def __recv_window(s):
-        s._recv_window = QMainWindow(s._balance_window) 
+        s._recv_window = SecWindow(s._balance_window) 
 
         s._recv_window.setAttribute(Qt.WA_TranslucentBackground)
         s._recv_window.setWindowTitle("Recieve")
@@ -1330,7 +1605,7 @@ class ClientGUI:
         s.copied.setText("Copied!")
 
     def __open_history(s):
-        s._history_window = QMainWindow(s._window)
+        s._history_window = SecWindow(s._window)
         s._history_window.setAttribute(Qt.WA_TranslucentBackground)
         s._history_window.setWindowTitle("History")
         s._history_window.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
@@ -1466,14 +1741,27 @@ class ClientGUI:
 
         s._history_window.show()
 
-        
-        
+    
 
     def add_to_history(s, translist):
         s._translist.extend(translist)
-
-            
+        #adr = s._client.get_address()
+        #for t in translist:
+        #    if t[1]==adr:
+                
+    def notif_click(s):
+        if not s._history_window==None:
+            if s._history_window.isVisible():
+                s._history_window.activateWindow()  # Bring the window to the front
+            else:
+                s._history_window.show()  # Show the window if it's hidden
         
+        else:
+            s.__open_history()
+            
+    def notif_add(s,typpe,tr):
+        s.notif_bridge.notif_add(typpe, tr)
+
 
     
     def draw(s):
@@ -1489,13 +1777,14 @@ class ClientGUI:
         try:
             # Handle failure on casting from string to int
 
-            s._client: ClientBL= ClientBL(user, p_key, skt, s.show_error, s.add_to_history)
-
+            s._client: ClientBL= ClientBL(user, p_key, skt, s.show_error, s.add_to_history, s.notif_add)
+            s.notif_bridge = NotificationBridge(s.notif_manager, s._client.get_address())
             # check if we successfully created socket
             # and ready to go
             if not s._client.get_success():
                 raise Exception("failed to create and setup client bl")
             else:
+                s.title_bar.set_on_close(s._client.disconnect)
                 s._reg_cut.setParent(None)
                 s._login_cut.setParent(None)
 
@@ -1504,6 +1793,9 @@ class ClientGUI:
 
                 s._history_cut = DesktopShortcut(HIS_ICON, "History", s.__open_history, s._central_widget)
                 s._history_cut.setFixedSize(86,80)
+                
+                
+                
 
                 s._cut_login_layout.addWidget(s._balance_cut)
                 s._cut_login_layout.addWidget(s._history_cut)    
@@ -1517,7 +1809,6 @@ class ClientGUI:
             error = s._client and s._client.get_last_error() or e
             traceback.print_exc()
             write_to_log(f" 路 Client GUI 路 an error has occurred : {error}")
-            messagebox.showerror("Error on Connect", error)
     
 
     def __send_data_event(s):

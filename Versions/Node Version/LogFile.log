@@ -1,27 +1,57 @@
-2025-03-26 03:08:40,661 - INFO -  Node / starting
-2025-03-26 03:08:40,664 - INFO - Current block is 6, with the difficulty of 7
-2025-03-26 03:08:40,664 - INFO -  Node / listening on 0.0.0.0
-2025-03-26 03:09:08,685 - INFO -   Protocol  · Buffer size : 53
-2025-03-26 03:09:08,685 - INFO -   Protocol  · Buffer data : Miner address:>RR81c8e7b38f6559f99b0ed0580d5b04aa9e80
-2025-03-26 03:09:08,685 - INFO -  Node / Sending message: Valid
-2025-03-26 03:09:08,686 - INFO -   Protocol  · Buffer size : 5
-2025-03-26 03:09:08,686 - INFO -   Protocol  · Buffer data : asd>2
-2025-03-26 03:09:08,687 - INFO -  Node / Active connection 1
-2025-03-26 03:09:08,687 - INFO - Node / New miner : asd connected
-2025-03-26 03:09:08,747 - INFO -   Protocol  · Buffer size : 43
-2025-03-26 03:09:08,747 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>6
-2025-03-26 03:09:08,747 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>6
-2025-03-26 03:09:08,748 - INFO -  Node / Sending message: UPDATED>6>7
-2025-03-26 03:09:08,748 - INFO -  Node / Updated: asd
-2025-03-26 03:09:22,315 - INFO -   Protocol  · Buffer size : 13
-2025-03-26 03:09:22,315 - INFO -   Protocol  · Buffer data : LOGIN>fff>fff
-2025-03-26 03:09:22,315 - INFO -  Node / Sending message: Successfully logged in.>RRb86a96d573dd0405dc1dfca4dceceab9a464
-2025-03-26 03:09:22,445 - INFO -   Protocol  · Buffer size : 5
-2025-03-26 03:09:22,446 - INFO -   Protocol  · Buffer data : fff>1
-2025-03-26 03:09:22,446 - INFO -  Node / Active connection 2
-2025-03-26 03:09:22,446 - INFO - Node / New client : fff connected
-2025-03-26 03:09:22,447 - INFO -   Protocol  · Buffer size : 43
-2025-03-26 03:09:22,447 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>6
-2025-03-26 03:09:22,447 - INFO -  Node / Received from client : fff - Can you send me the blockchain from block>6
-2025-03-26 03:09:22,447 - INFO -  Node / Sending message: UPDATED>6>7
-2025-03-26 03:09:22,447 - INFO -  Node / Updated: fff
+2025-03-31 00:37:53,807 - INFO -  Node / starting
+2025-03-31 00:37:53,809 - INFO -  Node / Current block is 11, with the difficulty of 6
+2025-03-31 00:37:53,809 - INFO -  Node / listening on 0.0.0.0
+2025-03-31 00:38:06,604 - INFO -   Protocol  · Buffer size : 17
+2025-03-31 00:38:06,604 - INFO -   Protocol  · Buffer data : LOGIN>sigma>sigma
+2025-03-31 00:38:06,604 - INFO -  Node / Sending message: Successfully logged in.>RRc894b58695387ebd1b7757dbafb19c84b52b
+2025-03-31 00:38:06,697 - INFO -   Protocol  · Buffer size : 7
+2025-03-31 00:38:06,697 - INFO -   Protocol  · Buffer data : sigma>1
+2025-03-31 00:38:06,697 - INFO -  Node / Active connection 1
+2025-03-31 00:38:06,697 - INFO -  Node / New client : sigma connected
+2025-03-31 00:38:06,698 - INFO -   Protocol  · Buffer size : 44
+2025-03-31 00:38:06,698 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>11
+2025-03-31 00:38:06,698 - INFO -  Node / Received from client : sigma - Can you send me the blockchain from block>11
+2025-03-31 00:38:06,698 - INFO -  Node / Sending message: UPDATED>11>6
+2025-03-31 00:38:06,699 - INFO -  Node / Updated: sigma
+2025-03-31 00:38:35,269 - INFO -   Protocol  · Buffer size : 53
+2025-03-31 00:38:35,269 - INFO -   Protocol  · Buffer data : Miner address:>RRc894b58695387ebd1b7757dbafb19c84b52b
+2025-03-31 00:38:35,269 - INFO -  Node / Sending message: Valid
+2025-03-31 00:38:35,271 - INFO -   Protocol  · Buffer size : 5
+2025-03-31 00:38:35,271 - INFO -   Protocol  · Buffer data : asd>2
+2025-03-31 00:38:35,271 - INFO -  Node / Active connection 2
+2025-03-31 00:38:35,271 - INFO - Node / New miner : asd connected
+2025-03-31 00:38:35,322 - INFO -   Protocol  · Buffer size : 44
+2025-03-31 00:38:35,322 - INFO -   Protocol  · Buffer data : Can you send me the blockchain from block>11
+2025-03-31 00:38:35,322 - INFO -  Node / received from miner : asd - Can you send me the blockchain from block>11
+2025-03-31 00:38:35,323 - INFO -  Node / Sending message: UPDATED>11>6
+2025-03-31 00:38:35,323 - INFO -  Node / Updated: asd
+2025-03-31 00:38:44,324 - INFO -   Protocol  · Buffer size : 268
+2025-03-31 00:38:44,324 - INFO -   Protocol  · Buffer data : Sending mined block>(12, '000000339d5b1288b0323caccec28b3ccc67b6971053d6cfd66c8929a2c8ba93', '000000a39c3a1362ce505474b165ee5300b7bd4b21529edaef7555e88a782044', '3a0446fcef18a09fe90dc2b911be5e42bc02d4fa81894bca44136c2a81bf3ccf', '2025-03-31 00:38:43', 6, 3784429)>8.94
+2025-03-31 00:38:44,324 - INFO -  Node / received from miner : asd - Sending mined block>(12, '000000339d5b1288b0323caccec28b3ccc67b6971053d6cfd66c8929a2c8ba93', '000000a39c3a1362ce505474b165ee5300b7bd4b21529edaef7555e88a782044', '3a0446fcef18a09fe90dc2b911be5e42bc02d4fa81894bca44136c2a81bf3ccf', '2025-03-31 00:38:43', 6, 3784429)>8.94
+2025-03-31 00:38:44,327 - INFO -   Protocol  · Buffer size : 291
+2025-03-31 00:38:44,327 - INFO -   Protocol  · Buffer data : (12, 0, '2025-03-31 00:38:35', '0000000000000000000000000000000000000000000000000000000000000000', 'RRc894b58695387ebd1b7757dbafb19c84b52b', 100.0, 'GMBL', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
+2025-03-31 00:38:44,327 - INFO -   Protocol  · Buffer size : 27
+2025-03-31 00:38:44,327 - INFO -   Protocol  · Buffer data : Stop recieving transactions
+2025-03-31 00:38:44,329 - INFO - Successfully saved the block 12 and its transactions
+2025-03-31 00:38:44,334 - INFO -  Node / Sending message: Saved the whole block>6
+2025-03-31 00:38:44,334 - INFO -  Node / Sending message: Sending block...>(12, '000000339d5b1288b0323caccec28b3ccc67b6971053d6cfd66c8929a2c8ba93', '000000a39c3a1362ce505474b165ee5300b7bd4b21529edaef7555e88a782044', '3a0446fcef18a09fe90dc2b911be5e42bc02d4fa81894bca44136c2a81bf3ccf', '2025-03-31 00:38:43', 6, 3784429)
+2025-03-31 00:38:44,335 - INFO -  Node / Sending message: (12, 0, '2025-03-31 00:38:35', '0000000000000000000000000000000000000000000000000000000000000000', 'RRc894b58695387ebd1b7757dbafb19c84b52b', 100.0, 'GMBL', '0000000000000000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000000000000000')
+2025-03-31 00:38:44,335 - INFO -  Node / Sending message: Stop recieving transactions
+2025-03-31 00:38:44,335 - INFO -  Node / sent the block to sigma
+2025-03-31 00:38:56,221 - INFO -   Protocol  · Buffer size : 56
+2025-03-31 00:38:56,221 - INFO -   Protocol  · Buffer data : Is address valid?>RR701430d5253c07cac771f1dbad5dcf0ba3ac
+2025-03-31 00:38:56,221 - INFO -  Node / Received from client : sigma - Is address valid?>RR701430d5253c07cac771f1dbad5dcf0ba3ac
+2025-03-31 00:38:56,244 - INFO -   Protocol  · Buffer size : 337
+2025-03-31 00:38:56,244 - INFO -   Protocol  · Buffer data : Transaction:|(1, '2025-03-31 00:38:56', 'RRc894b58695387ebd1b7757dbafb19c84b52b', 'RR701430d5253c07cac771f1dbad5dcf0ba3ac', 100, 'TAL', '02f566d7ab183c0b94db5f4ec32fff58c7fe8f21383f29721dceac4c69935639d4', '7cf3466b4f10f3925d1841d17f155f8319de311969c1900ed1c02d7bc38f0b1c938d6bcacf9d73ac942134f86d2653e5f6aa9ae72abb8f9b9111ccf0e18a05a8')
+2025-03-31 00:38:56,244 - INFO -  Node / Received from client : sigma - Transaction:|(1, '2025-03-31 00:38:56', 'RRc894b58695387ebd1b7757dbafb19c84b52b', 'RR701430d5253c07cac771f1dbad5dcf0ba3ac', 100, 'TAL', '02f566d7ab183c0b94db5f4ec32fff58c7fe8f21383f29721dceac4c69935639d4', '7cf3466b4f10f3925d1841d17f155f8319de311969c1900ed1c02d7bc38f0b1c938d6bcacf9d73ac942134f86d2653e5f6aa9ae72abb8f9b9111ccf0e18a05a8')
+2025-03-31 00:38:56,255 - INFO -  Node / Sending message: Transaction:|(1, '2025-03-31 00:38:56', 'RRc894b58695387ebd1b7757dbafb19c84b52b', 'RR701430d5253c07cac771f1dbad5dcf0ba3ac', 100, 'TAL', '02f566d7ab183c0b94db5f4ec32fff58c7fe8f21383f29721dceac4c69935639d4', '7cf3466b4f10f3925d1841d17f155f8319de311969c1900ed1c02d7bc38f0b1c938d6bcacf9d73ac942134f86d2653e5f6aa9ae72abb8f9b9111ccf0e18a05a8')|sigma
+2025-03-31 00:38:56,255 - INFO - Node / Broadcasted transaction
+2025-03-31 00:38:56,542 - INFO -   Protocol  · Buffer size : 26
+2025-03-31 00:38:56,542 - INFO -   Protocol  · Buffer data : Transaction verified>sigma
+2025-03-31 00:38:56,542 - INFO -  Node / received from miner : asd - Transaction verified>sigma
+2025-03-31 00:38:56,543 - INFO -  Node / Sending message: Transaction verified
+2025-03-31 00:38:56,543 - INFO -  Node / Sent confirmation to: sigma
+2025-03-31 00:39:29,435 - INFO -   Protocol  · Buffer size : 4
+2025-03-31 00:39:29,435 - INFO -   Protocol  · Buffer data : EXIT
+2025-03-31 00:39:29,435 - INFO -  Node / Received from client : sigma - EXIT
+2025-03-31 00:39:29,435 - INFO -  Node / User sigma was disconnected

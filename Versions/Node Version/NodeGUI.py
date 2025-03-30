@@ -95,6 +95,6 @@ class NodeGUI:
             else:
                 messagebox.showerror("Error on Start", self._node.get_last_error())
 n = NodeGUI()
-        
+
 
 

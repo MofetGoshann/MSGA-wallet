@@ -40,9 +40,11 @@ FAILEDTOSAVEBLOCK = "Could not save the block"
 GOOD_TRANS_MSG = "Transaction verified"
 TRANS = "Transaction:"
 
+tm_format = "%Y-%m-%d %H:%M:%S"
 DEFAULT_IP: str = "0.0.0.0"
 BUFFER_SIZE: int = 1024
 HEADER_SIZE = 4
+
 
 def send(msg, skt: socket):
     write_to_log(" Miner / Sending message: "+msg)
@@ -208,7 +210,7 @@ def recieve_trs(skt: socket, conn: sqlite3.Connection):
 
 
 
-def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqlite3.Connection):
+def verify_transaction(transmsg_full: str, conn: sqlite3.Connection):
     '''
     takes the full transaction message with signature transaction and public key
     returns true if transaction is valid or returns false and error
@@ -220,66 +222,21 @@ def verify_transaction(transmsg_full: str, conn: sqlite3.Connection, connp: sqli
             return (ver, msg)
         
         cursor = conn.cursor()
-        cursorp = connp.cursor()
         
         transaction_tuple = ast.literal_eval(transmsg_full)
-        tr_nonce = transaction_tuple[0]
-        amount_spent = transaction_tuple[4]
         token = transaction_tuple[5]
-        cursorp.execute(f'''
-        SELECT balance FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[3]}' AND token='{token}'
+
+        cursor.execute(f'''
+        SELECT * FROM balances WHERE address='{transaction_tuple[3]}' AND token='{token}'
         ''')
-        if cursorp.fetchone()==None: # update the recvs balance
+        balances = cursor.fetchone()
+        if balances==None: # if reciever not in database
             cursor.execute(f'''
-            SELECT * FROM balances WHERE address='{transaction_tuple[3]}' AND token='{token}'
-            ''')
-            balances = cursor.fetchone()
-            if balances==None: # if reciever not in database
-                cursor.execute(f'''
-                INSERT INTO balances VALUES (?, ?, ?, ?)
-                ''', (transaction_tuple[3], 0, token, 1))
-                conn.commit()
-            
-            cursorp.execute(f'''
             INSERT INTO balances VALUES (?, ?, ?, ?)
-                
             ''', (transaction_tuple[3], 0, token, 1))
-            connp.commit()
-        
-        # prove that nonce is valid to ensure no double spending
-        cursorp.execute(f'''
-        SELECT balance FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[2]}' AND token='{token}'
-        ''')
-        nonce = cursorp.fetchone()
-        if nonce==None: # no balance in the mempool
-            cursor.execute(f'''
-            SELECT * FROM balances WHERE nonce={tr_nonce} AND address='{transaction_tuple[2]}' AND token='{token}'
-            ''')
-            balances = cursor.fetchone()
-            if balances==None: # if the nonce wrong
-                return False , "Error, your account is not registered in the chain / wrong nonce"
-            
-            # insert the balance of this user in this block
-            cursorp.execute(f'''
-            INSERT INTO balances VALUES {str(balances)}
-            ''')
-            connp.commit()
-            return True, ""
+            conn.commit()
 
-        else:
-            cursorp.execute(f'''
-            SELECT nonce, balance FROM balances WHERE address='{transaction_tuple[2]}' AND token='{token}'
-            ''')
-            nonce, pend_balance = cursorp.fetchone()
-
-            if pend_balance<amount_spent: # if trying to spend more then having
-                return False, "Error, your account balance is lower then the amount you are trying to spend"
-            
-            if not nonce==transaction_tuple[0]:
-                return False, "Error, wrong nonce"
-            
-            return True, "" # if didnt fail then verified
-    
+        return True, ""
     except Exception as e: # failure
         write_to_log(" MinerBL / Failed to verify transaction; "+e)
         return False, f"Error, failed to verify transaction; {e}"
@@ -294,7 +251,6 @@ def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in t
         token = trans_tuple[6]
         sender = trans_tuple[3]
         recv = trans_tuple[4]
-        print(recv)
 
         cursorp.execute('''
             SELECT 1 FROM balances WHERE token = ? AND address = ?
@@ -327,47 +283,7 @@ def calculate_balik_one(trans, connp:sqlite3.Connection): # update balances in t
         write_to_log(f" MinerP / Failed to update balance after transaction ; {e}")
         return False, f" Error, failed to update balance after transaction ; {e}"
 
-def calculate_balik_raw(trans, connp:sqlite3.Connection): # update balances in the mempool
-    cursorp = connp.cursor()
-    try:
-        trans_tuple = ast.literal_eval(trans)
-        #get the before addresses for handling failure
-        # trans ()
-        amount_spent = trans_tuple[4]
-        token = trans_tuple[5]
-        sender = trans_tuple[2]
-        recv = trans_tuple[3]
 
-        cursorp.execute('''
-            SELECT 1 FROM balances WHERE token = ? AND address = ?
-            ''', (token, recv))
-
-        if cursorp.fetchone()==None:
-            print("No mine address")
-            cursorp.execute('''
-            INSERT INTO balances VALUES (?, ?, ?, ?)
-            ''', (recv, 0, token, 1))
-        connp.commit()
-        
-        # update senders balance and nonce if not miners reward
-        if sender!="0"*64:
-            cursorp.execute(f'''
-            UPDATE balances SET balance = balance - {amount_spent} WHERE address = '{sender}' AND token = '{token}'
-            ''') 
-            cursorp.execute(f'''
-            UPDATE balances SET nonce = nonce + 1 WHERE address = '{sender}' AND token = '{token}'
-            ''') 
-        # update the recievers
-        cursorp.execute(f'''
-        UPDATE balances SET balance = balance + {amount_spent} WHERE address = '{recv}' AND token = '{token}'
-        ''')
-        connp.commit()
-
-        return True, trans_tuple[4] # if no errors return the sender address
-    except Exception as e: # reset the addreses and return error
-
-        write_to_log(f" MinerP / Failed to update balance after transaction ; {e}")
-        return False, f" Error, failed to update balance after transaction ; {e}"
     
 def address_from_key(public_key: VerifyingKey):
     hexedpub = binascii.hexlify(public_key.to_string("compressed"))
@@ -379,7 +295,7 @@ def address_from_key(public_key: VerifyingKey):
 
     return "RR" + secdhash.hexdigest() + checksum
 
-def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_header:str):
+def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_header:str, mined_time):
     cursor = conn.cursor()
     cursorp = connp.cursor()
     # insert the header int local chain
@@ -391,8 +307,8 @@ def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_h
     INSERT INTO blocks VALUES {block_header}
     ''') 
     cursorp.execute(f'''
-    SELECT * FROM transactions
-    ''')     
+    SELECT * FROM transactions WHERE timestamp < ?
+    ''', (mined_time, ))     
     
     translist = cursorp.fetchall()
     if len(translist)==0: # if no transactions
@@ -407,15 +323,12 @@ def update_mined_block(conn:sqlite3.Connection,connp:sqlite3.Connection, block_h
     cursorp.execute(f'''
     DELETE FROM transactions
     ''') 
-    cursorp.execute(f'''
-    DELETE FROM balances
-    ''') 
 
     # commit everything
     conn.commit()
     connp.commit()
 
-def send_mined(header: str, skt :socket, pend_conn, lastb) -> bool:
+def send_mined(header: str, skt :socket, pend_conn, lastb, mined_time) -> bool:
     '''
     sends a mined blocks transactions
     returns true if sent all without problems
@@ -424,13 +337,13 @@ def send_mined(header: str, skt :socket, pend_conn, lastb) -> bool:
     cursor:sqlite3.Cursor = pend_conn.cursor()
     #getting the block header
     try:
-        b_id = ast.literal_eval(header)[0]
 
         cursor.execute(f'''
-        SELECT * FROM transactions 
-        ''')
+        SELECT *
+        FROM transactions
+        WHERE timestamp < ?
+        ''', (mined_time, ))
         trans_list = cursor.fetchall()
-        print(trans_list)
 
         if len(trans_list)!=0: # if valid
             for tr in trans_list: # sending all the transactions
@@ -444,7 +357,7 @@ def send_mined(header: str, skt :socket, pend_conn, lastb) -> bool:
         else:
             #the block mined has no transactions
             write_to_log(f" protocol / Sent a block with no header")
-            return True, ""
+            return False, "No transactions in the block"
         
     except Exception as e:
             write_to_log(f" protocol / Failed to send a block; {e}")
@@ -482,7 +395,6 @@ def saveblockchain(msg, skt:socket, conn):
             ''', (token, recv))
 
             if cursor.fetchone()==None:
-                print("No mine address")
                 cursor.execute('''
                 INSERT INTO balances VALUES (?, ?, ?, ?)
                 ''', (recv, 0, token, 1))
@@ -539,14 +451,6 @@ def miner_on_start(skt:socket, conn, connp):
         )
         ''')
     
-    cursorp.execute('''
-    CREATE TABLE IF NOT EXISTS balances (
-            address VARCHAR(64) NOT NULL,
-            balance REAL NOT NULL,
-            token VARCHAR(12) NOT NULL,
-            nonce INT NOT NULL
-    )
-    ''')
 
     cursorp.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
@@ -563,12 +467,6 @@ def miner_on_start(skt:socket, conn, connp):
     
     conn.commit() 
     connp.commit()
-
-    cursorp.execute(f"SELECT 1 FROM transactions")
-
-    if cursorp.fetchone():
-        cursorp.execute(f"DELETE FROM transactions")
-        connp.commit()
     
     cursor.execute('''
         SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1

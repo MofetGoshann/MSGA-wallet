@@ -1,8 +1,6 @@
 import hashlib 
-import shutil
 import logging
 import socket
-import json
 from hashlib import sha256
 from hashlib import blake2s
 from ecdsa import ecdsa, VerifyingKey, NIST256p
@@ -11,11 +9,8 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
-import base64
 import binascii
-import base64
 import sqlite3
-import time 
 import ast
 
 
@@ -55,7 +50,7 @@ HEADER_SIZE = 4
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-def convert_data(buffer: str) -> (str, list):
+def convert_data(buffer: str) -> tuple[str, list]:
     #converts a command(separator)>args to
     #string of the command, list of the arguments
 

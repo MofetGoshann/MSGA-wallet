@@ -15,30 +15,8 @@ import ast
 import traceback
 import random
 
-class Block:
-
-    def __init__(self, previous_block_hash, transaction_list, id: int):
-        self.previous_block_hash = previous_block_hash
-        self.transaction_list = transaction_list
-        self.__nonce = 0
-        self.block_data =  previous_block_hash +"-"+ datetime.datetime.now() + "-" + self.__nonce
-        self.block_hash = hashlib.sha256(self.block_data.encode()).hexdigest()
-        self.__block_id = id
-    
-
-    def gethash(self):
-        return self.block_hash
-    def getdata(self):
-        return self.block_data
-    
-    def getid(s):
-        return s.__block_id
-    
-    def mine(s):
-        pass    
 
 
-tm_format = "%d.%m.%Y %H:%M:%S"
 
 
 
@@ -55,7 +33,7 @@ class Miner:
         self.__user = username
         self.__address = address
         self.__lastb = None
-        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "COLR", "MSGA", "52C", "GMBL", "MGR", "RR"]
+        self.tokenlist = ["NTL", "TAL", "SAN", "PEPE", "MNSR", "MSGA", "52C", "GMBL", "MGR", "RR"]
         self.__mining = False
         self.__diff = 0
         self.__connected = False
@@ -125,16 +103,15 @@ class Miner:
 
         try:
             # Start the disconnect process
-            write_to_log(f" 路 Client 路 {self._socket_obj.getsockname()} closing")
+            write_to_log(f" Miner / {self._socket_obj.getsockname()} closing")
 
             # Alert the server we're closing this miner
             self._socket_obj.send(format_data(DISCONNECT_MSG).encode())
             self.__connected= False
-            #self._recvfunc("Disconnected.")
-            # Close miner socket
+
             self._socket_obj.close()
 
-            write_to_log(f" 路 Client 路 the client closed")
+            write_to_log(f" Miner / The miner closed application")
 
             self._socket_obj = None
 
@@ -144,7 +121,7 @@ class Miner:
         except Exception as e:
 
             # Handle failure
-            write_to_log(f" 路 Client 路 failed to disconnect : {e}")
+            write_to_log(f" Miner / Failed to disconnect : {e}")
             self._last_error = f"An error occurred in client bl [disconnect function]\nError : {e}"
 
             return False
@@ -298,15 +275,13 @@ class Miner:
                         SELECT * FROM transactions 
                     ''')      
         trs = cursor.fetchall()
-        if len(trs)==0: # if no transactions
-            return hashex("0"*64)
         
-
+        mined_time = datetime.fromtimestamp(time.time() + 1).strftime("%Y-%m-%d %H:%M:%S")
         hashes = [hashex(hashex(str(t))) for t in trs]
 
         # If only one transaction, the Merkle Root is its hash
         if len(hashes) == 1:
-            return hashes[0]
+            return hashes[0], mined_time
         try:
         # Hash all transactions
 
@@ -327,20 +302,16 @@ class Miner:
             write_to_log(" MinerBL / Failed to build a merkle tree ; "+e)
             s._last_error = "Problem in BL, failed to build a merkle tree" + e
         # The final hash is the Merkle Root
-        return hashes[0]
+        return hashes[0], mined_time
     
     def __operate_transaction(s, trans, conn):
         connp = sqlite3.connect(f'databases/Miner/pending.db')
         cursorp = connp.cursor()
         try:
 
-            success, msg = verify_transaction(trans, conn, connp) # verify transaction
+            success, msg = verify_transaction(trans, conn) # verify transaction
             if not success:
                 return False, msg
-
-            success, msgg = calculate_balik_raw(trans, connp) # update the balance
-            if not success:
-                return False, msgg
             
             trans_tuple = ast.literal_eval(trans)
             #include transaction in mempool
@@ -350,9 +321,9 @@ class Miner:
             connp.commit()
 
             connp.close()
-            return True, msgg
+            return True, msg
         except Exception as e:
-            write_to_log(f" Miner / Problem with including the transactions into pending table; {msg or msgg}")
+            write_to_log(f" Miner / Problem with including the transactions into pending table; {msg}")
             s._last_error = f"Error in __operate_transaction() func ; {e}"
             
             
@@ -361,7 +332,7 @@ class Miner:
         chaincursor = conn.cursor()
         cursorp = connp.cursor()
 
-        token = s.tokenlist[random.randint(1,10)] # get a random token
+        token = s.tokenlist[random.randint(0,9)] # get a random token
         print(f" Miner / Mining block {s.__lastb+1}, reward in {token}", end="", flush=True)
         try:
             mined_time = datetime.now().strftime(tm_format)
@@ -372,7 +343,8 @@ class Miner:
             ''', (0, mined_time, "0"*64, s.__address, 100, token, "0"*64, "0"*64))
             connp.commit()
 
-            merkle_root = s.build_merkle_tree(connp) # build the root
+            merkle_root, mined_time = s.build_merkle_tree(connp) # build the root
+
             chaincursor.execute(f'''
             SELECT block_hash from blocks WHERE block_id={s.__lastb}
             ''')
@@ -380,7 +352,7 @@ class Miner:
             
             
             if p_hash==None: # if the first block
-                p_hash="0"*64
+                p_hash=tuple("0"*64, )
 
             s.__mining = True
             nonce = 0
@@ -421,12 +393,14 @@ class Miner:
 
         while s.__connected:
 
-            result = s.__start_mining(conn, pend_conn) #  header, time, ist
+            result = s.__start_mining(conn, pend_conn) #  header, time, mined_time
             if result[0]!=False: # if block came earlier
-                write_to_log(f"Sent the block {s.__lastb+1} to node ")
-                send(MINEDBLOCKSENDMSG +">"+result[0]+">"+result[1], s._socket_obj) # broadcast to everyone
+                write_to_log(f" Miner / Sent the block {s.__lastb+1} to node ")
+                header, mining_time, mined_time = result
+
+                send(MINEDBLOCKSENDMSG +">"+header+">"+mining_time, s._socket_obj) # broadcast to everyone
                 #stall till got confirmation
-                res = send_mined(result[0], s._socket_obj, pend_conn, s.__lastb+1)
+                res = send_mined(header, s._socket_obj, pend_conn, s.__lastb+1, mined_time)
                 if res[0]==True:
                     # wait for confirmation from server , then save the block
                     start_time = time.time()
@@ -443,8 +417,9 @@ class Miner:
                         raise Exception(TimeoutError)
                     
                     s.__recieved_message = ""
-                    update_mined_block(conn, pend_conn,result[0]) # update the transactions in local chain
+                    update_mined_block(conn, pend_conn,header, mined_time) # update the transactions in local chain
                     s.__lastb=s.__lastb+1 # update the last block
+
                     s.update_balances(conn) # update the balances
                         
                     
@@ -454,14 +429,25 @@ class Miner:
                     cursorp.execute("""
                     DELETE FROM transactions WHERE sender = ?                  
                       """, ('0'*64))
+                    
                     cursorp.commit()
-
+                    cursorp.close()
+                    conn.close()
+                    pend_conn.close()
                     write_to_log(" Miner / Failed to send mined block")
                     s.disconnect()
-            else:
-                write_to_log("Failed; "+result[1])
+            else: # if bad delete 
+                cursorp = pend_conn.cursor()
+                cursorp.execute(f"SELECT 1 FROM transactions")
+
+                if cursorp.fetchone(): # delete miner trasanctions
+                    cursorp.execute(f"DELETE FROM transactions WHERE sender = ?", ('0'*64, ) )
+                    pend_conn.commit()
+                cursorp.close()
+                pend_conn.close()
+                write_to_log("Miner / Failed to mine; "+result[1])
     
-   
+
 
 
                 

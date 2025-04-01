@@ -13,15 +13,16 @@ import ast
 from protocol import *
 import traceback
 import PyQt5
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, QGridLayout, QSpacerItem, QSizePolicy, QToolTip, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QGraphicsDropShadowEffect
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, QGridLayout, QSpacerItem, QSizePolicy, QToolTip, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QGraphicsDropShadowEffect, QScrollArea
 from PyQt5.QtGui import QPixmap, QIcon, QImage, QPainter, QPen, QColor, QBrush, QCursor, QMouseEvent
-from PyQt5.QtCore import Qt, QSize, QPoint, QRect, QTimer, pyqtSignal
+from PyQt5.QtCore import Qt, QSize, QPoint, QRect, QTimer, QObject, pyqtSignal, pyqtSlot, QPropertyAnimation
 import time
 
 
 NEW_USER = "New user just registered, address: "
 DEFAULT_IP: str = "0.0.0.0"
 DEFAULT_PORT =12222
+tm_format = "%Y-%m-%d %H:%M:%S"
 
 def send(msg, skt: socket):
     write_to_log(" Client / Sending message: "+msg)
@@ -224,7 +225,7 @@ def recieve_block(header:str,conn:sqlite3.Connection ,skt:socket)->bool:
 
     if res: # if not empty
         lastb_id, prev_hash = res
-        if lastb_id: # check the block_id
+        if lastb_id and id!=lastb_id+1: # check the block_id
             return False, "Block id is invalid", []
     
     head_no_hash = "(" +str(id) +", " +str(header_tuple[2:])[1:]

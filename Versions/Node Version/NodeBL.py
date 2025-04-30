@@ -116,11 +116,9 @@ class NodeBL:
                 miner = False
                 res =False
                 if logreg.startswith("REG"):
-                    print("reg")
                     res = self.register(logreg, connected_socket)
 
                 if logreg.startswith("LOG"):
-                    print("log")
                     res = self.login(logreg, connected_socket)
                 
                 if logreg.startswith("Miner address:"):
@@ -275,14 +273,13 @@ class NodeBL:
 
 
     def __handle_client(self, clientsession: Session):
-        
         user = clientsession.getusername()
         sock = clientsession.getsocket()
         conn = sqlite3.connect('databases/Node/blockchain.db')
         conn.execute('PRAGMA journal_mode=WAL')
 
         # This code run in separate for every client
-        write_to_log(f"Node / New client : {user} connected")
+        write_to_log(f" Node / New client : {user} connected")
         
 
         #if self._clientstablecallback is not None: # insert client to gui table
@@ -297,24 +294,6 @@ class NodeBL:
             if success:
                 # if we managed to get the message :
                 write_to_log(f" Node / Received from client : {user} - {msg}")
-
-                #self._mutex.acquire()
-                #try:
-                #    if self._receive_callback is not None:
-                #        if not msg.startswith("LOGIN"):
-                #            self._receive_callback(f"{user} - {msg}")    
-                #        else:
-                #            self._receive_callback(f"{user} - LOGIN > Username, Password")
-
-                #except Exception as e:
-                #    write_to_log(f"  Node    · some error occurred : {e}")
-                #finally:
-                #    self._mutex.release()
-                    
-                # If the client wants to disconnect
-                if msg == DISCONNECT_MSG:
-                    connected = False
-                    self._sessionlist.remove(clientsession) # remove the client from session list
                 
                 if msg.startswith(TRANS):
                     # the msg is transaction
@@ -342,6 +321,15 @@ class NodeBL:
                         sock.send(format_data("Valid").encode())
                     else:
                         send("No such address in the blockchain", sock)
+                
+                if msg==DISCONNECT_MSG:
+                    connected = False
+                    write_to_log(f" Node / User {user} was disconnected")
+
+                    for i, u in enumerate(self._sessionlist):
+                        if u.getusername()==user:
+                            self._sessionlist.pop(i)
+                    
                     
     
     def __handle_miner(self, miner_session: Session):
@@ -431,6 +419,13 @@ class NodeBL:
                             send(BAD_TRANS_MSG+">"+er, session.getsocket())
                             write_to_log(f" Node / Sent error to: {user_to_send}")
 
+                if msg==DISCONNECT_MSG:
+                    connected = False
+                    write_to_log(f" Node / Miner {user} was disconnected")
+                    
+                    for i, u in self._sessionlist:
+                        if u.getusername()==user:
+                            self._sessionlist.pop(i)
                 msg=""
                 
     
@@ -453,6 +448,8 @@ class NodeBL:
             id_list = cursor.fetchall() # get all the blocks needed to send
 
             if id_list: # if valid 
+                
+                
 
                 if len(id_list)==1: # if the senders last block is the actual last block send confirmation
 
@@ -470,7 +467,7 @@ class NodeBL:
 
                     send("UPDATED" + ">" + str(id_list[0][0])+f">{s.__timedict['diff']}", skt)
                     return True
-                if int(id)!=1:
+                if int(id)!=0:
                     print("NIGGER")
                     id_list = id_list[1:]
 
@@ -603,9 +600,9 @@ class NodeBL:
         res = cursor.fetchone()
         if res:
             s.__lastb = res[0]
-            write_to_log(f"Current block is {s.__lastb}, with the difficulty of {s.__timedict['diff']}")
+            write_to_log(f" Node / Current block is {s.__lastb}, with the difficulty of {s.__timedict['diff']}")
             return
-        write_to_log(f"No blocks in the chain, starting difficulty is {s.__timedict['diff']}")
+        write_to_log(f"Node / No blocks in the chain, starting difficulty is {s.__timedict['diff']}")
         
 
         

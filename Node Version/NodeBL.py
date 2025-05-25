@@ -219,9 +219,11 @@ class NodeBL:
             write_to_log("Denied register of "+user)
             return False
         
+        hashedpas = hashex(pas)
+
         cursor.execute('''
             INSERT INTO users (username, pass) VALUES (?, ?)
-        ''', (user,pas))
+        ''', (user,hashedpas))
 
         # get the uid
         cursor.execute('''
@@ -256,15 +258,17 @@ class NodeBL:
 
         user = spl[1]
         pas = spl[2]
+        hashpas = hashex(pas)
         cursor = s._conn.cursor()
 
         cursor.execute('''
             SELECT uId FROM users WHERE username = ? AND pass = ?
-        ''', (user, pas))
+        ''', (user, hashpas))
         
         id = cursor.fetchone()
 
         if id:
+            
             cursor.execute('''
             SELECT address FROM balances WHERE uId = ?
             ''', (id[0], ))
@@ -284,7 +288,7 @@ class NodeBL:
         conn = sqlite3.connect('databases/Node/blockchain.db')
         conn.execute('PRAGMA journal_mode=WAL')
 
-        # This code run in separate for every client
+        # This code runs in separate for every client
         write_to_log(f" Node / New client : {user} connected")
         
         connected = True
@@ -586,7 +590,7 @@ class NodeBL:
             CREATE TABLE IF NOT EXISTS users (
             uId INTEGER PRIMARY KEY AUTOINCREMENT,
             username VARCHAR(16) NOT NULL,
-            pass VARCHAR(16) NOT NULL
+            pass VARCHAR(64) NOT NULL
             )
             ''')
         

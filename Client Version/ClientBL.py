@@ -280,7 +280,8 @@ class ClientBL:
 
         conn = sqlite3.connect(f'databases/Client/blockchain.db')
         cursor = conn.cursor()
-
+        adr_conn = sqlite3.connect(f'databases/Client/addressbook.db')
+        adr_curs = adr_conn.cursor()
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS blocks (
@@ -315,8 +316,17 @@ class ClientBL:
                 token VARCHAR(12) NOT NULL,
                 nonce INT NOT NULL
             )
-            ''')  
+            ''') 
+        
 
+        adr_curs.execute('''
+            CREATE TABLE IF NOT EXISTS contacts (
+                name VARCHAR(16) NOT NULL,
+                username VARCHAR(16) NOT NULL,
+                address VARCHAR(64) NOT NULL
+            )
+            ''')  
+        
         conn.commit()
         cursor.execute('''
             SELECT block_id FROM blocks ORDER BY block_id DESC LIMIT 1

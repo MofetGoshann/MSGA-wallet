@@ -25,6 +25,7 @@ WNW_ICON = "Images/wallet.ico"
 BAL_ICON = "Images/dolla.png"
 HIS_ICON ="Images/history.png"
 NOT_ICON = "Images/notif.png"
+ADR_ICON = "Images/address.png"
 RED_NOT_ICON = "Images/rednotif.png"
 
 class HoverLabel(QLabel):
@@ -808,8 +809,12 @@ class ClientGUI:
         s._reg_cut = DesktopShortcut(LOGIN_ICON, "Register", s.openreggui, s._back_label)
         s._reg_cut.setFixedSize(86,86)
 
+        s._adr_cut = DesktopShortcut(ADR_ICON, "Contacts", s.open_contacts, s._back_label)
+        s._adr_cut.setFixedSize(86,86)
+
         s._cut_login_layout.addWidget(s._login_cut)
         s._cut_login_layout.addWidget(s._reg_cut)      
+        s._cut_login_layout.addWidget(s._adr_cut)      
         s._back_label.setLayout(s._cut_login_layout)
         
         # Main layout
@@ -1609,7 +1614,7 @@ class ClientGUI:
         s._history_window.setAttribute(Qt.WA_TranslucentBackground)
         s._history_window.setWindowTitle("History")
         s._history_window.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
-        s._history_window.setFixedSize(750, 450)  # Increased width
+        s._history_window.setFixedSize(750, 450)  
 
         # Center window
         balance_center = s._window.geometry().center()
@@ -1749,6 +1754,144 @@ class ClientGUI:
         #for t in translist:
         #    if t[1]==adr:
                 
+    def open_contacts(s):
+        s._addressbook_window = SecWindow(s._window)
+        s._addressbook_window.setAttribute(Qt.WA_TranslucentBackground)
+        s._addressbook_window.setWindowTitle("Address Book")
+        s._addressbook_window.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        s._addressbook_window.setFixedSize(750, 450)  
+
+        # Center window
+        balance_center = s._window.geometry().center()
+        b_size = s._addressbook_window.size()
+        s._addressbook_window.move(
+            balance_center.x() - b_size.width() // 2,
+            balance_center.y() - b_size.height() // 2
+        )
+
+        # Taskbar icon (if needed)
+        s._addressbook_icon = TaskbarButton(s._addressbook_window, ADR_ICON, s._taskbar)
+        s._task_layout.addWidget(s._addressbook_icon)
+
+        # Window styling
+        s._addressbook_window.setStyleSheet("""
+        QToolTip {
+            color: white;
+            background-color: #000080;
+            border: 1px solid white;
+        }
+        """)
+
+        # Central widget
+        s._addressbook_central_wid = QWidget(s._addressbook_window)
+        s._addressbook_central_wid.setStyleSheet(
+            "background-color: #ece9d8; border: 4px solid #000080; border-radius: 2px;"
+        )
+        s._addressbook_window.setCentralWidget(s._addressbook_central_wid)
+
+        title_bar = DraggableTitleBar(f"Address Book", s._addressbook_window)
+        title_bar.setStyleSheet(
+            "background-color: #000080; color: white; border-radius: 2px 2px 0 0;"
+        )
+        title_bar.setFixedHeight(30)
+        title_bar.setGeometry(0, 0, s._addressbook_window.width(), 30)
+
+        # Main layout
+
+        # Create table
+        s.addressbook_table = QTableWidget(s._addressbook_central_wid)
+        s.addressbook_table.setGeometry(10,40, 730, 400)
+        s.addressbook_table.setColumnCount(3)
+        s.addressbook_table.setHorizontalHeaderLabels(["Name", "Username", "Address"])
+        s.addressbook_table.verticalHeader().setVisible(True)
+        s.addressbook_table.verticalHeader().setDefaultSectionSize(25)  # Row height
+        s.addressbook_table.verticalHeader().setStyleSheet("""
+            QHeaderView::section {
+                background-color: #000080;
+                color: white;
+                padding: 4px;
+                border: 1px solid white;
+                font-weight: bold;
+            }
+        """)
+
+
+        # Adjust column widths
+        s.addressbook_table.setColumnWidth(0, 200)  # Name
+        s.addressbook_table.setColumnWidth(1, 200)  # Username
+        s.addressbook_table.setColumnWidth(2, 300)  # Address (widest)
+
+        # Update column resize behavior
+        s.addressbook_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Interactive)  # Name
+        s.addressbook_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Interactive)  # Username
+        s.addressbook_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)     # Address
+        s.addressbook_table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
+
+        s.addressbook_table.horizontalHeader().setMinimumSectionSize(50)  # Prevent cutting off
+
+        # Update the QHeaderView::section style to include font-size
+        s.addressbook_table.horizontalHeader().setStyleSheet("""
+        QHeaderView::section {
+            background-color: #000080;
+            color: white;
+            padding: 6px;
+            border: 1px solid white;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        """)
+        # Table styling
+        s.addressbook_table.setStyleSheet("QTableCornerButton::section {background-color: #000080;border: 1px solid white;}")
+        s.addressbook_table.setStyleSheet("""
+            QTableWidget {
+                background-color: #ece9d8;
+                border: 1px solid #000080;
+                font-size: 12px;
+                gridline-color: #000080;
+            }
+            
+            QTableWidget::item {
+                padding: 3px;
+            }
+            QScrollBar:vertical {
+                border: 1px solid #000080;
+                background: #ece9d8;
+                width: 14px;
+                margin: 0px 0px 0px 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #000080;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
+
+        # Add sample data (20 contacts to ensure scrolling)
+        sample_contacts = [["asdr", "asd", "asdd"]]
+        if sample_contacts != []:
+            s.addressbook_table.setRowCount(len(sample_contacts))
+            for row, contact in enumerate(sample_contacts):
+                for col, data in enumerate(contact):
+                    item = QTableWidgetItem(data)
+                    item.setTextAlignment(Qt.AlignCenter)
+                    s.addressbook_table.setItem(row, col, item)
+
+        # Add title bar
+        s._addressbook_window.show()
+
+
+
+
+
+
+
+
+
     def notif_click(s):
         if not s._history_window==None:
             if s._history_window.isVisible():
